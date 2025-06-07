@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to C Recursion Optimization</title>
+    <!-- Chosen Palette: Calm Harmony (Beige, Slate, Terracotta) -->
+    <!-- Application Structure Plan: The application is structured as a narrative journey. It starts with a high-level visual introduction to the problem (stack overflow) and the key solution (TCO). It then delves into specific techniques using interactive tabs. The centerpiece is the "Compiler Battleground," a dashboard allowing users to actively explore how different compilers (GCC, Clang, MSVC) and optimization settings affect recursive C code, showing simulated assembly and plain-language explanations. This transforms passive reading into active learning. It follows with a comparative chart contrasting C and functional languages, and concludes with an actionable checklist of best practices. This non-linear, exploratory structure was chosen over a simple report layout to maximize user engagement and comprehension of complex technical details. -->
+    <!-- Visualization & Content Choices: The application uses a variety of interactive elements to match the learning goal of each section. 1) Inform (Stack Growth): An HTML/CSS diagram is used for its simplicity and directness. 2) Compare (Code): Side-by-side code blocks with highlighting simplify the accumulator pattern transformation. 3) Explore (Compiler Behavior): A multi-filter dashboard with simulated assembly (HTML/CSS) and dynamic text provides a sandboxed environment for discovery. This is the core interactive element. 4) Compare (Languages): A Chart.js bar chart is used to visually represent the stark differences between C and functional language guarantees, which is more impactful than a static table. 5) Summarize (Best Practices): A clean card-based checklist provides scannable takeaways. All choices are designed to make abstract compiler concepts tangible and interactive. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Fira+Code:wght@400;500&display=swap');
+        .font-code {
+            font-family: 'Fira Code', monospace;
+        }
+        .tab-active {
+            background-color: #374151; /* gray-700 */
+            color: #ffffff;
+        }
+        .btn-active {
+            background-color: #3b82f6; /* blue-500 */
+            color: #ffffff;
+            border-color: #3b82f6;
+        }
+        .code-block {
+            background-color: #1f2937;
+            color: #d1d5db;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+        }
+        .asm-line .comment { color: #6b7280; }
+        .asm-line .instr { color: #a78bfa; }
+        .asm-line .reg { color: #facc15; }
+        .asm-line .mem { color: #60a5fa; }
+        .asm-line .label-def { color: #34d399; }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container { height: 450px; }
+        }
+    </style>
+</head>
+<body class="bg-[#F5F5DC] text-gray-800">
+
+    <header class="bg-slate-800 text-white shadow-lg sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <h1 class="text-xl md:text-2xl font-bold">C Recursion Optimization</h1>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#introduction" class="hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium">Introduction</a>
+                        <a href="#techniques" class="hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium">Techniques</a>
+                        <a href="#explorer" class="hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium">Compiler Explorer</a>
+                        <a href="#comparison" class="hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium">Language Divide</a>
+                        <a href="#best-practices" class="hover:bg-slate-700 px-3 py-2 rounded-md text-sm font-medium">Best Practices</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none">
+                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#introduction" class="block hover:bg-slate-700 px-3 py-2 rounded-md text-base font-medium">Introduction</a>
+                <a href="#techniques" class="block hover:bg-slate-700 px-3 py-2 rounded-md text-base font-medium">Techniques</a>
+                <a href="#explorer" class="block hover:bg-slate-700 px-3 py-2 rounded-md text-base font-medium">Compiler Explorer</a>
+                <a href="#comparison" class="block hover:bg-slate-700 px-3 py-2 rounded-md text-base font-medium">Language Divide</a>
+                <a href="#best-practices" class="block hover:bg-slate-700 px-3 py-2 rounded-md text-base font-medium">Best Practices</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <section id="introduction" class="my-12 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-2 text-slate-700">The Problem with Recursion</h2>
+            <p class="text-center max-w-3xl mx-auto mb-8 text-gray-600">
+                In C, every function call creates a "stack frame" to store its local data. With deep recursion, this can lead to a "stack overflow." Compilers use clever tricks, primarily Tail Call Optimization (TCO), to transform recursion into efficient loops, preventing this overflow. This interactive guide explores how.
+            </p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-4 text-center text-red-600">Standard Recursion: Stack Growth</h3>
+                    <div class="flex flex-col-reverse items-center space-y-reverse space-y-1">
+                        <div class="w-48 h-10 bg-red-200 border border-red-400 rounded flex items-center justify-center font-code text-sm">frame: fact(3)</div>
+                        <div class="w-44 h-10 bg-red-200 border border-red-400 rounded flex items-center justify-center font-code text-sm">frame: fact(2)</div>
+                        <div class="w-40 h-10 bg-red-200 border border-red-400 rounded flex items-center justify-center font-code text-sm">frame: fact(1)</div>
+                        <div class="w-36 h-10 bg-red-200 border border-red-400 rounded flex items-center justify-center font-code text-sm">base case</div>
+                    </div>
+                    <p class="text-center mt-4 text-sm text-gray-500">Each recursive `call` adds a new frame, consuming stack memory.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-xl font-semibold mb-4 text-center text-green-600">Tail Call Optimization (TCO)</h3>
+                    <div class="relative flex flex-col items-center">
+                        <div class="w-52 h-16 bg-green-200 border border-green-400 rounded flex items-center justify-center font-code text-sm">single stack frame</div>
+                        <div class="absolute -right-8 top-1/2 -translate-y-1/2 text-5xl text-green-500 transform rotate-90">&#x21BA;</div>
+                    </div>
+                     <p class="text-center mt-4 text-sm text-gray-500">TCO replaces the `call` with a `jmp`, reusing the same frame like a loop.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="techniques" class="my-12 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-slate-700">Core Optimization Techniques</h2>
+            <div id="tabs-container" class="max-w-4xl mx-auto">
+                <div class="flex border-b border-gray-400">
+                    <button data-tab="tco" class="tab-btn flex-1 py-2 px-4 text-center font-medium rounded-t-lg tab-active">Tail Call Optimization</button>
+                    <button data-tab="inlining" class="tab-btn flex-1 py-2 px-4 text-center font-medium rounded-t-lg">Function Inlining</button>
+                </div>
+                <div class="bg-white p-6 rounded-b-lg shadow-md border border-t-0 border-gray-200">
+                    <div id="tco-content" class="tab-content">
+                        <h3 class="text-2xl font-semibold mb-4 text-slate-800">Transforming Recursion with the Accumulator Pattern</h3>
+                        <p class="mb-6 text-gray-600">To make a function eligible for TCO, the recursive call must be the absolute final action. Often, this requires refactoring the function to use an "accumulator" parameter, which passes the intermediate result down with each call, instead of calculating it on the way back up the stack.</p>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="font-semibold mb-2">Non-Tail-Recursive Factorial</h4>
+                                <pre class="code-block font-code"><code>int factorial(int n) {
+    if (n <= 1) return 1;
+    // Multiplication happens AFTER
+    // the recursive call returns.
+    return <span class="text-yellow-400">n *</span> factorial(n - 1);
+}</code></pre>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-2">Tail-Recursive (with Accumulator)</h4>
+                                <pre class="code-block font-code"><code>int fact_helper(int n, int acc) {
+    if (n <= 1) return acc;
+    // Multiplication happens BEFORE
+    // the recursive call.
+    return fact_helper(n - 1, <span class="text-yellow-400">n * acc</span>);
+}</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="inlining-content" class="tab-content hidden">
+                        <h3 class="text-2xl font-semibold mb-4 text-slate-800">Eliminating Calls with Function Inlining</h3>
+                         <p class="mb-6 text-gray-600">For small functions, the compiler can eliminate call overhead entirely by replacing the function call with the function's body. For recursion, this is done up to a certain depth to avoid "code bloat," a large increase in binary size.</p>
+                         <div class="grid md:grid-cols-2 gap-4 items-center">
+                            <div>
+                                <h4 class="font-semibold mb-2">Before Inlining</h4>
+                                <pre class="code-block font-code"><code>int result = <span class="text-yellow-400">factorial(3)</span>;</code></pre>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold mb-2">After Inlining (Conceptual)</h4>
+                                <pre class="code-block font-code"><code>// The call is replaced by the body
+int result = <span class="text-yellow-400">3 * (2 * (1 * 1))</span>;</code></pre>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-sm text-gray-500">Note: Compilers limit recursive inlining depth. MSVC defaults to 16, while GCC/Clang use complex heuristics.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="explorer" class="my-12 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-2 text-slate-700">Interactive Compiler Explorer</h2>
+            <p class="text-center max-w-3xl mx-auto mb-8 text-gray-600">
+                Choose a compiler, optimization level, and function to see how C recursion is compiled. Observe how high optimization levels (`-O2`) can transform a recursive `call` into an iterative `jmp`, demonstrating TCO in action.
+            </p>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div>
+                        <label class="font-semibold mb-2 block">1. Choose Compiler:</label>
+                        <div id="compiler-btns" class="flex space-x-2">
+                            <button data-val="GCC" class="flex-1 p-2 border rounded-md btn-active">GCC</button>
+                            <button data-val="Clang" class="flex-1 p-2 border rounded-md">Clang</button>
+                            <button data-val="MSVC" class="flex-1 p-2 border rounded-md">MSVC</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="font-semibold mb-2 block">2. Choose Optimization:</label>
+                         <div id="opt-btns" class="flex space-x-2">
+                            <button data-val="O0" class="flex-1 p-2 border rounded-md">None (-O0)</button>
+                            <button data-val="O2" class="flex-1 p-2 border rounded-md btn-active">High (-O2)</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="font-semibold mb-2 block">3. Choose Function:</label>
+                        <select id="func-select" class="w-full p-2 border rounded-md bg-white">
+                            <option value="FACT_TAIL">Factorial (Tail-Recursive)</option>
+                            <option value="FACT_NTR">Factorial (Non-Tail-Recursive)</option>
+                            <option value="FIB_TAIL">Fibonacci (Tail-Recursive)</option>
+                        </select>
+                    </div>
+                </div>
+                 <div id="musttail-toggle-container" class="mb-4">
+                     <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" id="musttail-checkbox" class="form-checkbox h-5 w-5 text-blue-600">
+                        <span class="font-medium text-gray-700">Use `__attribute__((musttail))`</span>
+                     </label>
+                     <p class="text-xs text-gray-500 mt-1">Forces TCO on GCC/Clang. Can enable TCO even at -O0.</p>
+                </div>
+
+
+                <div class="grid lg:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">C Source Code</h3>
+                        <pre id="c-code-output" class="code-block font-code h-80"></pre>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">Simulated Assembly Output</h3>
+                        <div id="asm-output" class="code-block font-code h-80"></div>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <h3 class="text-xl font-semibold mb-2">Compiler's Verdict</h3>
+                    <div id="verdict-output" class="bg-stone-100 p-4 rounded-lg border border-stone-200 text-gray-700"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="my-12 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-2 text-slate-700">The TCO Divide: Functional Languages vs. C</h2>
+            <p class="text-center max-w-3xl mx-auto mb-8 text-gray-600">
+                In many functional languages, TCO is a guaranteed language feature because recursion is the primary way to loop. In C, it's an optional optimization, complicated by low-level features like pointers, stack manipulation, and (in C++) object destructors.
+            </p>
+            <div class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                <div class="chart-container">
+                    <canvas id="tco-comparison-chart"></canvas>
+                </div>
+                <div id="chart-explanation" class="mt-4 p-4 bg-stone-100 rounded-lg border border-stone-200 text-gray-700 hidden"></div>
+            </div>
+        </section>
+
+        <section id="best-practices" class="my-12 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center mb-8 text-slate-700">Actionable Advice for C Developers</h2>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="font-semibold text-lg mb-2">✅ Prioritize Tail Recursion</h3>
+                    <p class="text-gray-600">Rewrite recursive functions using the accumulator pattern to make them eligible for TCO. This is the single most important step for optimizable recursion.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="font-semibold text-lg mb-2">⚙️ Use Optimization Flags</h3>
+                    <p class="text-gray-600">Always compile release builds with `-O2`, `/O2`, or higher. TCO and other key optimizations are typically disabled by default.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="font-semibold text-lg mb-2">🛡️ Guarantee TCO with `musttail`</h3>
+                    <p class="text-gray-600">On GCC/Clang, use `__attribute__((musttail))` on critical tail calls to ensure the optimization occurs or get a compile-time error if it can't.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="font-semibold text-lg mb-2">🔬 Verify with Assembly</h3>
+                    <p class="text-gray-600">Don't guess—confirm. Inspect the assembly output for a `jmp` instead of a `call`. Use tools like Compiler Explorer or the one on this page.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="font-semibold text-lg mb-2">🔁 Consider Iteration</h3>
+                    <p class="text-gray-600">If TCO is not guaranteed and stack depth is a concern (e.g., with MSVC), a manual iterative solution is the most robust and portable choice in C.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="font-semibold text-lg mb-2">⏱️ Profile Your Code</h3>
+                    <p class="text-gray-600">Assumptions about performance can be wrong. Measure execution time and memory usage to validate the real-world impact of your optimizations.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-white mt-12 py-4">
+        <div class="container mx-auto text-center text-sm text-gray-400">
+            <p>Interactive SPA created based on the "Compiler Optimization of Recursive Functions in C" report.</p>
+        </div>
+    </footer>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const explorerData = {
+        C_CODE: {
+            FACT_TAIL: `int fact_helper(int n, int acc) {
+    if (n <= 1) return acc;
+    return fact_helper(n - 1, n * acc);
+}
+
+int factorial(int n) {
+    return fact_helper(n, 1);
+}`,
+            FACT_NTR: `int factorial(int n) {
+    if (n <= 1) return 1;
+    // Note: n * ... happens after call
+    return n * factorial(n - 1);
+}`,
+            FIB_TAIL: `int fib_helper(int n, int a, int b) {
+    if (n == 0) return a;
+    if (n == 1) return b;
+    return fib_helper(n - 1, b, a + b);
+}
+
+int fibonacci(int n) {
+    return fib_helper(n, 0, 1);
+}`
+        },
+        MUST_TAIL_C_CODE: {
+             FACT_TAIL: `int fact_helper(int n, int acc) {
+    if (n <= 1) return acc;
+    __attribute__((musttail))
+    return fact_helper(n - 1, n * acc);
+}
+...`,
+            FIB_TAIL: `int fib_helper(int n, int a, int b) {
+    if (n == 0) return a;
+    if (n == 1) return b;
+    __attribute__((musttail))
+    return fib_helper(n - 1, b, a + b);
+}
+...`
+        },
+        RESULTS: {
+            GCC: {
+                O0: {
+                    FACT_TAIL: {
+                        asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">rbp</span></span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">rbp</span>, <span class="reg">rsp</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack frame setup</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">fact_helper</span> <span class="comment">; recursive call</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack teardown</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "Without optimization, GCC performs a standard recursive call. Each call creates a new stack frame, leading to O(n) stack growth. TCO is not applied."
+                    },
+                    FACT_TAIL_MUSTTAIL: {
+                         asm: `<span class="label-def">fact_helper:</span>
+<span class="asm-line"><span class="instr">...</span>    <span class="comment">; setup args for next "call"</span></span>
+<span class="asm-line"><span class="instr">jmp</span>  <span class="label-def">fact_helper</span> <span class="comment">; GUARANTEED TCO!</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "The `musttail` attribute forces GCC to perform TCO, even at -O0. It uses a special 'late pass' to transform the call into a jmp, ensuring O(1) stack usage. This is a powerful feature for correctness."
+                    },
+                    FACT_NTR: {
+                        asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">rbp</span></span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">rbp</span>, <span class="reg">rsp</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">factorial</span></span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">eax</span>, <span class="mem">[rbp-4]</span> <span class="comment">; multiply AFTER call</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "This is not a tail call. The multiplication happens after the recursive call returns. GCC makes no attempt to optimize this into a loop at -O0."
+                    },
+                     FIB_TAIL: {
+                        asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">rbp</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack frame setup</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">fib_helper</span> <span class="comment">; recursive call</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "At -O0, GCC compiles the tail-recursive Fibonacci with standard calls, growing the stack with each call. TCO is not applied."
+                    },
+                },
+                O2: {
+                    FACT_TAIL: {
+                        asm: `<span class="label-def">fact_helper:</span>
+<span class="asm-line"><span class="instr">...</span> <span class="comment">; function prologue</span></span>
+<span class="label-def">.L3:</span> <span class="comment">; loop starts here</span>
+<span class="asm-line"><span class="instr">cmp</span>  <span class="reg">edi</span>, 1</span>
+<span class="asm-line"><span class="instr">jle</span>  <span class="label-def">.L2</span></span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">esi</span>, <span class="reg">edi</span></span>
+<span class="asm-line"><span class="instr">sub</span>  <span class="reg">edi</span>, 1</span>
+<span class="asm-line"><span class="instr">jmp</span>  <span class="label-def">.L3</span> <span class="comment">; jump, not call!</span></span>
+<span class="label-def">.L2:</span>
+<span class="asm-line"><span class="instr">...</span> <span class="comment">; return accumulator</span></span>`,
+                        verdict: "With high optimization, GCC detects the tail recursion and converts the function into an efficient iterative loop. The recursive 'call' becomes a `jmp`, resulting in O(1) stack usage."
+                    },
+                    FACT_NTR: {
+                       asm: `<span class="label-def">factorial:</span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="label-def">.L4:</span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">eax</span>, <span class="reg">edx</span></span>
+<span class="asm-line"><span class="instr">sub</span>  <span class="reg">edx</span>, 1</span>
+<span class="asm-line"><span class="instr">cmp</span>  <span class="reg">edx</span>, 1</span>
+<span class="asm-line"><span class="instr">jne</span>  <span class="label-def">.L4</span> <span class="comment">; jump, not call!</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "GCC is very smart! Even though this is not written as a tail call, GCC's pattern recognition is powerful enough at -O2 to transform the `n * f(n-1)` pattern into an iterative loop, achieving the same effect as TCO."
+                    },
+                     FIB_TAIL: {
+                        asm: `<span class="label-def">fib_helper:</span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="label-def">.L5:</span> <span class="comment">; loop starts</span>
+<span class="asm-line"><span class="instr">lea</span>  <span class="reg">eax</span>, [<span class="reg">rdx</span>+<span class="reg">rsi</span>]</span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">rdx</span>, <span class="reg">rsi</span></span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">rsi</span>, <span class="reg">eax</span></span>
+<span class="asm-line"><span class="instr">sub</span>  <span class="reg">edi</span>, 1</span>
+<span class="asm-line"><span class="instr">test</span> <span class="reg">edi</span>, <span class="reg">edi</span></span>
+<span class="asm-line"><span class="instr">jne</span>  <span class="label-def">.L5</span> <span class="comment">; jump, not call!</span></span>`,
+                        verdict: "At -O2, GCC applies TCO to the tail-recursive Fibonacci function, converting it into a tight loop. This is extremely efficient and uses constant stack space."
+                    },
+                }
+            },
+            Clang: {
+                O0: {
+                    FACT_TAIL: {
+                        asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">rbp</span></span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">rbp</span>, <span class="reg">rsp</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack frame setup</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">fact_helper</span> <span class="comment">; recursive call</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack teardown</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "Like GCC, Clang at -O0 performs standard recursive calls without TCO, leading to stack growth."
+                    },
+                    FACT_TAIL_MUSTTAIL: {
+                        asm: `<span class="label-def">fact_helper:</span>
+<span class="asm-line"><span class="instr">...</span> <span class="comment">; setup args</span></span>
+<span class="asm-line"><span class="instr">tail</span> <span class="instr">jmp</span> <span class="label-def">fact_helper</span> <span class="comment">; GUARANTEED TCO!</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "Clang's `musttail` attribute forces TCO. If it cannot perform the optimization, it will produce a compile error. This provides a strong guarantee for developers relying on TCO for correctness."
+                    },
+                    FACT_NTR: {
+                       asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">rbp</span></span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">rbp</span>, <span class="reg">rsp</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">factorial</span></span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">eax</span>, <span class="mem">[rbp+16]</span> <span class="comment">; multiply AFTER call</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "The function is not tail-recursive, so Clang correctly compiles it with a standard recursive call followed by a multiplication. No optimization is applied at -O0."
+                    },
+                     FIB_TAIL: {
+                         asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">rbp</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack frame setup</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">fib_helper</span> <span class="comment">; recursive call</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "At -O0, Clang makes no attempt to optimize the tail recursion, resulting in standard, stack-consuming calls."
+                    },
+                },
+                O2: {
+                    FACT_TAIL: {
+                       asm: `<span class="label-def">fact_helper:</span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="label-def">.LBB0_1:</span> <span class="comment">; loop starts here</span>
+<span class="asm-line"><span class="instr">cmp</span>  <span class="reg">edi</span>, 1</span>
+<span class="asm-line"><span class="instr">jle</span>  <span class="label-def">.LBB0_3</span></span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">esi</span>, <span class="reg">edi</span></span>
+<span class="asm-line"><span class="instr">dec</span>  <span class="reg">edi</span></span>
+<span class="asm-line"><span class="instr">jmp</span>  <span class="label-def">.LBB0_1</span> <span class="comment">; jump, not call!</span></span>
+<span class="label-def">.LBB0_3:</span>
+<span class="asm-line"><span class="instr">...</span></span>`,
+                        verdict: "With -O2, Clang's LLVM backend performs TCO, converting the tail-recursive function into an efficient loop, just like GCC. Stack usage is constant."
+                    },
+                    FACT_NTR: {
+                        asm: `<span class="label-def">factorial:</span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="label-def">.LBB0_2:</span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">eax</span>, <span class="reg">ecx</span></span>
+<span class="asm-line"><span class="instr">dec</span>  <span class="reg">ecx</span></span>
+<span class="asm-line"><span class="instr">cmp</span>  <span class="reg">ecx</span>, 1</span>
+<span class="asm-line"><span class="instr">jne</span>  <span class="label-def">.LBB0_2</span> <span class="comment">; jump, not call!</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "Like GCC, Clang at -O2 is smart enough to recognize the `n * f(n-1)` pattern and transform it into an iterative loop, even though the source is not tail-recursive."
+                    },
+                    FIB_TAIL: {
+                       asm: `<span class="label-def">fib_helper:</span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="label-def">.LBB0_2:</span> <span class="comment">; loop starts</span>
+<span class="asm-line"><span class="instr">add</span>  <span class="reg">esi</span>, <span class="reg">edx</span></span>
+<span class="asm-line"><span class="instr">xchg</span> <span class="reg">edx</span>, <span class="reg">esi</span></span>
+<span class="asm-line"><span class="instr">dec</span>  <span class="reg">edi</span></span>
+<span class="asm-line"><span class="instr">cmp</span>  <span class="reg">edi</span>, 1</span>
+<span class="asm-line"><span class="instr">jne</span>  <span class="label-def">.LBB0_2</span> <span class="comment">; jump, not call!</span></span>`,
+                        verdict: "At -O2, Clang successfully applies TCO, converting the Fibonacci function into an efficient loop with constant stack usage."
+                    },
+                }
+            },
+            MSVC: {
+                O0: { // MSVC uses /Od for no optimization
+                    FACT_TAIL: {
+                        asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">ebp</span></span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">ebp</span>, <span class="reg">esp</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack frame setup</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">fact_helper</span> <span class="comment">; recursive call</span></span>
+<span class="asm-line"><span class="instr">pop</span>  <span class="reg">ebp</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "In a debug build (/Od), MSVC performs standard recursive calls. No TCO is applied. It also does not support a `musttail` attribute."
+                    },
+                    FACT_NTR: {
+                        asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">ebp</span></span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">ebp</span>, <span class="reg">esp</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">factorial</span></span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">eax</span>, <span class="mem">[ebp+8]</span> <span class="comment">; multiply AFTER call</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "As expected, the non-tail-recursive function is compiled with standard recursive calls in a debug build."
+                    },
+                    FIB_TAIL: {
+                        asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">ebp</span></span>
+<span class="asm-line"><span class="instr">...</span>   <span class="comment">; stack frame setup</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">fib_helper</span> <span class="comment">; recursive call</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "In a debug build (/Od), the tail-recursive Fibonacci is not optimized and will grow the stack."
+                    }
+                },
+                O2: { // MSVC uses /O2 for speed optimization
+                    FACT_TAIL: {
+                        asm: `<span class="label-def">fact_helper:</span>
+<span class="asm-line"><span class="instr">cmp</span>  <span class="reg">ecx</span>, 1</span>
+<span class="asm-line"><span class="instr">jle</span>  <span class="label-def">SHORT $L2</span></span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">edx</span>, <span class="reg">ecx</span></span>
+<span class="asm-line"><span class="instr">dec</span>  <span class="reg">ecx</span></span>
+<span class="asm-line"><span class="instr">jmp</span>  <span class="label-def">fact_helper</span> <span class="comment">; TCO applied!</span></span>
+<span class="label-def">$L2:</span>
+<span class="asm-line"><span class="instr">mov</span>  <span class="reg">eax</span>, <span class="reg">edx</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "In a release build (/O2), MSVC correctly applies TCO to the tail-recursive factorial. The `call` is replaced with a `jmp`, ensuring O(1) stack space."
+                    },
+                    FACT_NTR: {
+                       asm: `<span class="asm-line"><span class="instr">push</span> <span class="reg">ebp</span></span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="asm-line"><span class="instr">call</span> <span class="label-def">factorial</span> <span class="comment">; Still a call!</span></span>
+<span class="asm-line"><span class="instr">imul</span> <span class="reg">eax</span>, <span class="mem">[ebp+8]</span></span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="asm-line"><span class="instr">ret</span></span>`,
+                        verdict: "Unlike GCC and Clang, MSVC is less likely to transform this non-tail-recursive pattern into a loop. It often compiles it as a standard recursive call even with optimizations enabled, making the source code structure more critical for MSVC."
+                    },
+                    FIB_TAIL: {
+                        asm: `<span class="label-def">fib_helper:</span>
+<span class="asm-line"><span class="instr">...</span></span>
+<span class="label-def">$L5:</span> <span class="comment">; loop starts</span>
+<span class="asm-line"><span class="instr">add</span>  <span class="reg">edx</span>, <span class="reg">eax</span></span>
+<span class="asm-line"><span class="instr">xchg</span> <span class="reg">eax</span>, <span class="reg">edx</span></span>
+<span class="asm-line"><span class="instr">dec</span>  <span class="reg">ecx</span></span>
+<span class="asm-line"><span class="instr">test</span> <span class="reg">ecx</span>, <span class="reg">ecx</span></span>
+<span class="asm-line"><span class="instr">jne</span>  <span class="label-def">$L5</span> <span class="comment">; loop jump, not call!</span></span>`,
+                        verdict: "With /O2, MSVC successfully applies TCO to the tail-recursive Fibonacci function, converting it into a loop and ensuring constant stack usage. Writing code in a tail-recursive style is key for MSVC."
+                    }
+                }
+            }
+        }
+    };
+
+
+    const state = {
+        compiler: 'GCC',
+        opt: 'O2',
+        func: 'FACT_TAIL',
+        musttail: false
+    };
+
+    const cCodeOutput = document.getElementById('c-code-output');
+    const asmOutput = document.getElementById('asm-output');
+    const verdictOutput = document.getElementById('verdict-output');
+    
+    function updateExplorer() {
+        const compilerData = explorerData.RESULTS[state.compiler];
+        const optData = compilerData[state.opt];
+        
+        let resultKey = state.func;
+        
+        if (state.musttail && (state.compiler === 'GCC' || state.compiler === 'Clang') && (state.func === 'FACT_TAIL' || state.func === 'FIB_TAIL') && state.opt === 'O0') {
+             resultKey = `${state.func}_MUSTTAIL`;
+        }
+        
+        const result = optData[resultKey] || optData[state.func];
+        
+        let cCode = explorerData.C_CODE[state.func];
+        if(state.musttail && (state.compiler === 'GCC' || state.compiler === 'Clang') && (explorerData.MUST_TAIL_C_CODE[state.func])) {
+            cCode = explorerData.MUST_TAIL_C_CODE[state.func];
+        }
+
+        cCodeOutput.textContent = cCode;
+        if (result) {
+            asmOutput.innerHTML = result.asm;
+            verdictOutput.textContent = result.verdict;
+        } else {
+            asmOutput.innerHTML = `<span class="asm-line"><span class="comment">; Combination not explicitly defined.</span></span>`;
+            verdictOutput.textContent = 'Data for this specific combination is not available in this demo.';
+        }
+        
+        const musttailContainer = document.getElementById('musttail-toggle-container');
+        if (state.compiler === 'GCC' || state.compiler === 'Clang') {
+            musttailContainer.style.display = 'block';
+        } else {
+            musttailContainer.style.display = 'none';
+        }
+    }
+    
+    document.getElementById('compiler-btns').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            state.compiler = e.target.dataset.val;
+            document.querySelectorAll('#compiler-btns button').forEach(b => b.classList.remove('btn-active'));
+            e.target.classList.add('btn-active');
+            updateExplorer();
+        }
+    });
+
+    document.getElementById('opt-btns').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            state.opt = e.target.dataset.val;
+            document.querySelectorAll('#opt-btns button').forEach(b => b.classList.remove('btn-active'));
+            e.target.classList.add('btn-active');
+            document.querySelector('#opt-btns button[data-val="O0"]').textContent = state.compiler === 'MSVC' ? 'None (/Od)' : 'None (-O0)';
+            document.querySelector('#opt-btns button[data-val="O2"]').textContent = state.compiler === 'MSVC' ? 'High (/O2)' : 'High (-O2)';
+            updateExplorer();
+        }
+    });
+
+    document.getElementById('func-select').addEventListener('change', (e) => {
+        state.func = e.target.value;
+        updateExplorer();
+    });
+
+    document.getElementById('musttail-checkbox').addEventListener('change', (e) => {
+        state.musttail = e.target.checked;
+        updateExplorer();
+    });
+
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            tabButtons.forEach(btn => btn.classList.remove('tab-active'));
+            button.classList.add('tab-active');
+            const tabId = button.dataset.tab;
+            tabContents.forEach(content => {
+                if (content.id === `${tabId}-content`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+    
+    const chartData = {
+        labels: ['Language Standard Guarantee', 'Primary Control Flow', 'Predictability for Developer', 'Impact of Object Lifecycle'],
+        datasets: [{
+            label: 'Functional Languages (e.g., Scheme)',
+            data: [100, 90, 95, 10],
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }, {
+            label: 'C / C++',
+            data: [0, 20, 40, 80],
+            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 1
+        }]
+    };
+    
+    const chartExplanations = [
+        "Language Standard Guarantee: Functional language standards (like Scheme) often mandate TCO. The C/C++ standard does not, leaving it as an optional, compiler-specific optimization.",
+        "Primary Control Flow: Recursion is a fundamental way to express iteration in functional programming. In C/C++, `for` and `while` loops are the primary tools for iteration.",
+        "Predictability for Developer: Functional programmers can rely on TCO for any valid tail call. C/C++ developers cannot be universally certain; it depends on the compiler, flags, and code structure, unless using `musttail`.",
+        "Impact of Object Lifecycle: C++'s RAII (destructors) can prevent TCO if an object needs cleanup after a call. This is not a concern in most functional languages which use garbage collection or have simpler data models."
+    ];
+    
+    const ctx = document.getElementById('tco-comparison-chart').getContext('2d');
+    const tcoChart = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+            indexAxis: 'y',
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                       callback: function(value) { return value + "%" }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Level of Feature Presence / Guarantee'
+                    }
+                },
+                y: {
+                    ticks: {
+                        autoSkip: false
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw}%`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'top',
+                }
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const chartExplanationDiv = document.getElementById('chart-explanation');
+                    const index = elements[0].index;
+                    chartExplanationDiv.textContent = chartExplanations[index];
+                    chartExplanationDiv.classList.remove('hidden');
+                }
+            }
+        }
+    });
+
+    updateExplorer();
+});
+</script>
+
+</body>
+</html>

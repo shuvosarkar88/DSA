@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Recursive Algorithms</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Slate & Sky -->
+    <!-- Application Structure Plan: The SPA is structured thematically based on the core concepts of the report. A sticky top navigation bar allows users to jump to different sections: Core Concepts, Traversal Algorithms, Backtracking, Divide & Conquer, Dynamic Programming, and a final comparison with Iteration. This structure promotes non-linear exploration. Each section combines concise explanations with interactive visualizations (e.g., animated algorithm steps, interactive charts) and corresponding code snippets. This design was chosen for usability, allowing users to either follow the report's flow or jump directly to a topic of interest, facilitating both learning and quick reference. -->
+    <!-- Visualization & Content Choices: Report sections are mapped to interactive goals. 'Tree Traversal' -> Goal: Organize/Explore -> Viz: Animated tree nodes changing color to show traversal order, with code side-by-side. 'Divide & Conquer' -> Goal: Compare/Change -> Viz: Animated bars for sorting algorithms (Merge Sort, Quicksort) and a searchable array for Binary Search. 'Dynamic Programming' -> Goal: Compare/Inform -> Viz: Chart.js line chart comparing naive vs. memoized Fibonacci calls to visually demonstrate performance impact. All interactions are handled with vanilla JS to update HTML/CSS, providing a dynamic learning experience. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #0ea5e9;
+            border-bottom-color: #0ea5e9;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .code-block {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.875rem;
+        }
+        .chart-container {
+            position: relative;
+            height: 40vh;
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+        }
+        .tree-node, .graph-node {
+            border: 2px solid #64748b;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            text-align: center;
+            background-color: white;
+            transition: all 0.5s ease-in-out;
+        }
+        .tree-line {
+            position: absolute;
+            background-color: #64748b;
+            z-index: -1;
+        }
+        .array-bar {
+            background-color: #60a5fa;
+            border: 1px solid #3b82f6;
+            transition: all 0.3s ease-in-out;
+            text-align: center;
+            color: white;
+            font-weight: 600;
+        }
+        .queen {
+            background-color: #facc15;
+            color: #1e293b;
+            font-size: 1.5rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-2xl font-bold text-slate-800">Recursive Algorithms</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#core" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 border-b-2 border-transparent">Core Concepts</a>
+                        <a href="#traversal" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 border-b-2 border-transparent">Traversal</a>
+                        <a href="#backtracking" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 border-b-2 border-transparent">Backtracking</a>
+                        <a href="#divide-conquer" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 border-b-2 border-transparent">Divide & Conquer</a>
+                        <a href="#dp" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 border-b-2 border-transparent">Dynamic Programming</a>
+                        <a href="#comparison" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-600 border-b-2 border-transparent">Vs. Iteration</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- Core Concepts Section -->
+        <section id="core" class="content-section">
+            <h2 class="text-3xl font-bold mb-4">Core Concepts of Recursion</h2>
+            <p class="mb-6 text-slate-600">Recursion is a technique where a function calls itself to solve a problem by breaking it down into smaller, self-similar subproblems. Every recursive algorithm must have a **base case** (a condition to stop) and a **recursive step** (the part where it calls itself with a smaller problem).</p>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Visualizing the Call Stack</h3>
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="flex-1">
+                         <p class="mb-4">Let's visualize calculating factorial of 3 (3!). The function `factorial(n)` calls itself with `n-1` until it hits the base case `n <= 1`. The call stack keeps track of each function call's state.</p>
+                        <button id="startFactorial" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Animate Factorial(3)</button>
+                    </div>
+                    <div class="flex-1">
+                        <div id="callStackViz" class="bg-slate-100 p-4 rounded-lg h-64 flex flex-col-reverse justify-start gap-2 overflow-hidden">
+                            <p class="text-center text-slate-500 italic">Call stack is empty</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Traversal Section -->
+        <section id="traversal" class="content-section">
+            <h2 class="text-3xl font-bold mb-4">Traversal Algorithms</h2>
+            <p class="mb-6 text-slate-600">Recursion is exceptionally elegant for traversing hierarchical data structures like trees and graphs. The code structure directly mirrors the structure of the data.</p>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-2">Binary Tree Traversal (DFS)</h3>
+                <p class="mb-4 text-slate-500">Select a traversal type to see it in action.</p>
+                <div class="flex space-x-2 mb-4">
+                    <button class="traversal-btn bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg" data-type="preorder">Preorder (Root-Left-Right)</button>
+                    <button class="traversal-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg" data-type="inorder">Inorder (Left-Root-Right)</button>
+                    <button class="traversal-btn bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg" data-type="postorder">Postorder (Left-Right-Root)</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <div id="tree-visualization" class="relative h-96 flex items-center justify-center">
+                           <!-- Tree will be generated here -->
+                        </div>
+                        <div class="mt-4">
+                            <h4 class="font-semibold">Traversal Order:</h4>
+                            <div id="traversal-output" class="bg-slate-100 p-3 rounded-lg font-mono text-lg tracking-wider h-12 flex items-center"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">C Implementation</h4>
+                        <div id="traversal-code" class="code-block">
+<pre>
+// Select a traversal type to see the code.
+</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Backtracking Section -->
+        <section id="backtracking" class="content-section">
+            <h2 class="text-3xl font-bold mb-4">Backtracking Algorithms</h2>
+            <p class="mb-6 text-slate-600">Backtracking incrementally builds solutions, abandoning a path (backtracking) as soon as it determines it cannot lead to a valid solution. Recursion naturally manages the "choose, explore, unchoose" pattern.</p>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">N-Queens Problem</h3>
+                <p class="mb-4 text-slate-500">Place N queens on an N×N board so none threaten each other. The algorithm will try to place queens column by column, backtracking when a placement is unsafe.</p>
+                <div class="flex items-center space-x-4 mb-4">
+                    <label for="n-queens-slider" class="font-medium">Board Size (N): <span id="n-queens-value">4</span></label>
+                    <input id="n-queens-slider" type="range" min="4" max="8" value="4" class="w-48">
+                    <button id="solve-nqueens" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg">Solve</button>
+                </div>
+                <div id="n-queens-board" class="grid gap-1 bg-slate-300" style="width: 300px; height: 300px;">
+                    <!-- N-Queens board will be generated here -->
+                </div>
+                 <p id="n-queens-status" class="mt-4 font-medium h-6"></p>
+            </div>
+        </section>
+
+        <!-- Divide & Conquer Section -->
+        <section id="divide-conquer" class="content-section">
+            <h2 class="text-3xl font-bold mb-4">Divide & Conquer Algorithms</h2>
+            <p class="mb-6 text-slate-600">This strategy involves dividing the problem into smaller subproblems, conquering them recursively, and then combining their solutions.</p>
+             <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Sorting Algorithms</h3>
+                <div class="flex space-x-2 mb-4">
+                     <button class="sort-btn bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg" data-algo="mergeSort">Animate Merge Sort</button>
+                    <button class="sort-btn bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg" data-algo="quickSort">Animate Quick Sort</button>
+                    <button id="reset-sort-array" class="bg-slate-500 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded-lg">Reset Array</button>
+                </div>
+                <div id="sort-visualization" class="h-64 flex items-end justify-center gap-1 p-4 bg-slate-100 rounded-lg">
+                </div>
+                <p id="sort-status" class="mt-4 font-medium h-6"></p>
+            </div>
+        </section>
+        
+        <!-- Dynamic Programming Section -->
+        <section id="dp" class="content-section">
+            <h2 class="text-3xl font-bold mb-4">Dynamic Programming & Memoization</h2>
+            <p class="mb-6 text-slate-600">DP solves complex problems by breaking them into overlapping subproblems, solving each subproblem only once, and storing the results. Recursion with **memoization** is a powerful top-down DP approach.</p>
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Fibonacci: Naive vs. Memoized</h3>
+                <p class="mb-4 text-slate-500">A naive recursive Fibonacci has exponential complexity due to recomputing the same values. Memoization reduces this to linear complexity by storing results.</p>
+                 <div class="chart-container">
+                    <canvas id="fib-chart"></canvas>
+                </div>
+                <p class="text-center mt-2 text-sm text-slate-500">Number of function calls to compute Fibonacci(n)</p>
+            </div>
+        </section>
+
+        <!-- Comparison Section -->
+        <section id="comparison" class="content-section">
+            <h2 class="text-3xl font-bold mb-4">Recursion vs. Iteration</h2>
+            <p class="mb-6 text-slate-600">The choice between recursion and iteration involves trade-offs in clarity, performance, and memory usage.</p>
+             <div class="overflow-x-auto bg-white p-6 rounded-lg shadow-lg">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Aspect</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Recursion</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Iteration</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-slate-200">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">Code Readability</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Often more readable and elegant for naturally recursive problems (e.g., trees, D&C).</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Generally more straightforward for linear tasks. Can be complex if simulating recursion with an explicit stack.</td>
+                        </tr>
+                        <tr class="bg-slate-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">Performance Overhead</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Higher due to function call overhead (stack frame management).</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Lower, as loop control is typically faster than function calls.</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">Memory Usage</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Uses call stack space for each recursive call. Can be significant.</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Typically uses constant auxiliary space unless an explicit data structure is used.</td>
+                        </tr>
+                        <tr class="bg-slate-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">Stack Overflow Risk</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">High risk for deep or unbounded recursion.</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Generally no risk of call stack overflow.</td>
+                        </tr>
+                         <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">Typical Use Cases</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Tree/graph traversals, divide-and-conquer, backtracking, problems with self-similar substructures.</td>
+                            <td class="px-6 py-4 whitespace-normal text-sm text-slate-500">Simple repetitive tasks, linear data structure processing, when stack overflow is a concern.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+
+            function updateContent(hash) {
+                hash = hash || '#core';
+
+                navLinks.forEach(link => {
+                    link.classList.toggle('active', link.hash === hash);
+                });
+
+                contentSections.forEach(section => {
+                    section.classList.toggle('active', `#${section.id}` === hash);
+                });
+            }
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    history.pushState(null, '', e.target.hash);
+                    updateContent(e.target.hash);
+                });
+            });
+
+            window.addEventListener('popstate', () => {
+                updateContent(window.location.hash);
+            });
+            
+            updateContent(window.location.hash);
+
+            // --- Core Concepts: Factorial Animation ---
+            const startFactorialBtn = document.getElementById('startFactorial');
+            const callStackViz = document.getElementById('callStackViz');
+            
+            async function animateFactorial(n) {
+                startFactorialBtn.disabled = true;
+                callStackViz.innerHTML = '';
+
+                let stack = [];
+                for (let i = n; i > 1; i--) {
+                    stack.push(`factorial(${i})`);
+                    updateStackViz(stack, false);
+                    await sleep(800);
+                }
+                stack.push(`factorial(1) -> base case, returns 1`);
+                updateStackViz(stack, false);
+                await sleep(1000);
+
+                let result = 1;
+                for (let i = 1; i <= n; i++) {
+                     stack.pop();
+                     result *= i;
+                     if(i > 1) stack[stack.length - 1] = `${stack[stack.length - 1].split(' ')[0]} -> returns ${result}`;
+                     updateStackViz(stack, true);
+                     await sleep(1000);
+                }
+                callStackViz.innerHTML = `<p class="text-center font-bold text-xl text-green-600">Final Result: ${result}</p>`;
+                startFactorialBtn.disabled = false;
+            }
+
+            function updateStackViz(stack, returning) {
+                callStackViz.innerHTML = stack.map((call, index) => {
+                    let classes = 'p-2 rounded-md text-center font-mono text-sm shadow-sm transition-all duration-300';
+                    if (returning && index === stack.length - 1) {
+                         classes += ' bg-green-200 text-green-800';
+                    } else {
+                         classes += ' bg-sky-200 text-sky-800';
+                    }
+                    return `<div class="${classes}">${call}</div>`;
+                }).join('');
+            }
+
+            startFactorialBtn.addEventListener('click', () => animateFactorial(3));
+
+
+            // --- Traversal Logic ---
+            const treeData = {
+                data: 1, left: { data: 2, left: { data: 4 }, right: { data: 5 } }, right: { data: 3, right: { data: 6 } }
+            };
+
+            const traversalCode = {
+                preorder: `void preorderTraversal(struct TreeNode* node) {
+    if (node == NULL) return;
+    printf("%d ", node->data); // Process Root
+    preorderTraversal(node->left); // Recur Left
+    preorderTraversal(node->right); // Recur Right
+}`,
+                inorder: `void inorderTraversal(struct TreeNode* node) {
+    if (node == NULL) return;
+    inorderTraversal(node->left); // Recur Left
+    printf("%d ", node->data); // Process Root
+    inorderTraversal(node->right); // Recur Right
+}`,
+                postorder: `void postorderTraversal(struct TreeNode* node) {
+    if (node == NULL) return;
+    postorderTraversal(node->left); // Recur Left
+    postorderTraversal(node->right); // Recur Right
+    printf("%d ", node->data); // Process Root
+}`
+            };
+
+            const treeVizContainer = document.getElementById('tree-visualization');
+            const traversalOutput = document.getElementById('traversal-output');
+            const traversalCodeEl = document.getElementById('traversal-code');
+            let isTraversing = false;
+            
+            function createTreeHTML(node, positions, level = 0, index = 0) {
+                 if (!node) return '';
+                 const x = positions[level][index].x;
+                 const y = positions[level][index].y;
+
+                 let html = `<div id="node-${node.data}" class="tree-node absolute" style="left: ${x}%; top: ${y}%; transform: translate(-50%, -50%);">${node.data}</div>`;
+                 
+                 if(node.left) {
+                    const childX = positions[level+1][index*2].x;
+                    const childY = positions[level+1][index*2].y;
+                    html += createLine(x, y, childX, childY);
+                    html += createTreeHTML(node.left, positions, level+1, index*2);
+                 }
+                 if(node.right) {
+                    const childX = positions[level+1][index*2+1].x;
+                    const childY = positions[level+1][index*2+1].y;
+                    html += createLine(x, y, childX, childY);
+                    html += createTreeHTML(node.right, positions, level+1, index*2+1);
+                 }
+                 return html;
+            }
+
+            function createLine(x1, y1, x2, y2) {
+                const length = Math.sqrt((x2-x1)*(x2-x1) + (y2-y1)*(y2-y1));
+                const angle = Math.atan2(y2-y1, x2-x1) * 180 / Math.PI;
+                const transform = `rotate(${angle}deg)`;
+                
+                const parentW = treeVizContainer.clientWidth;
+                const parentH = treeVizContainer.clientHeight;
+                
+                const absX1 = parentW * x1 / 100;
+                const absY1 = parentH * y1 / 100;
+
+                return `<div class="tree-line" style="width: ${length}%; left: ${x1}%; top: ${y1}%; transform-origin: 0 0; transform: ${transform};"></div>`;
+            }
+
+            function renderTree() {
+                const positions = {
+                    0: [{x: 50, y: 10}],
+                    1: [{x: 25, y: 40}, {x: 75, y: 40}],
+                    2: [{x: 12.5, y: 70}, {x: 37.5, y: 70}, {x: 62.5, y: 70}, {x: 87.5, y: 70}]
+                };
+                treeVizContainer.innerHTML = createTreeHTML(treeData, positions);
+            }
+
+            async function traverse(node, type) {
+                if (!node || !isTraversing) return;
+                
+                const el = document.getElementById(`node-${node.data}`);
+
+                const visit = async () => {
+                    if (!isTraversing) return;
+                    el.style.backgroundColor = '#facc15'; // yellow-400
+                    el.style.borderColor = '#eab308'; // yellow-500
+                    traversalOutput.textContent += `${node.data} `;
+                    await sleep(700);
+                    el.style.backgroundColor = '#60a5fa'; // blue-400
+                    el.style.borderColor = '#3b82f6'; // blue-500
+                    await sleep(300);
+                }
+
+                if (type === 'preorder') await visit();
+                await traverse(node.left, type);
+                if (type === 'inorder') await visit();
+                await traverse(node.right, type);
+                if (type === 'postorder') await visit();
+            }
+
+            document.querySelectorAll('.traversal-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    if(isTraversing) {
+                        isTraversing = false;
+                        await sleep(500);
+                    }
+                    isTraversing = true;
+                    const type = e.target.dataset.type;
+                    
+                    document.querySelectorAll('.tree-node').forEach(n => {
+                        n.style.backgroundColor = 'white';
+                        n.style.borderColor = '#64748b';
+                    });
+                    
+                    traversalOutput.textContent = '';
+                    traversalCodeEl.innerHTML = `<pre>${traversalCode[type]}</pre>`;
+                    await traverse(treeData, type);
+                    isTraversing = false;
+                });
+            });
+
+
+            // --- N-Queens Logic ---
+            const nQueensSlider = document.getElementById('n-queens-slider');
+            const nQueensValue = document.getElementById('n-queens-value');
+            const solveNQueensBtn = document.getElementById('solve-nqueens');
+            const nQueensBoard = document.getElementById('n-queens-board');
+            const nQueensStatus = document.getElementById('n-queens-status');
+            let nQueensN = 4;
+            let isSolvingNQueens = false;
+
+            function renderNQueensBoard(n) {
+                nQueensBoard.innerHTML = '';
+                nQueensBoard.style.gridTemplateColumns = `repeat(${n}, minmax(0, 1fr))`;
+                for (let i = 0; i < n * n; i++) {
+                    const cell = document.createElement('div');
+                    const row = Math.floor(i / n);
+                    const col = i % n;
+                    cell.className = `w-full h-full aspect-square flex items-center justify-center ${(row + col) % 2 === 0 ? 'bg-sky-200' : 'bg-white'}`;
+                    cell.id = `q-cell-${row}-${col}`;
+                    nQueensBoard.appendChild(cell);
+                }
+            }
+            
+            nQueensSlider.addEventListener('input', (e) => {
+                nQueensN = parseInt(e.target.value);
+                nQueensValue.textContent = nQueensN;
+                renderNQueensBoard(nQueensN);
+            });
+            
+            solveNQueensBtn.addEventListener('click', async () => {
+                if(isSolvingNQueens) {
+                    isSolvingNQueens = false;
+                    await sleep(100);
+                }
+                isSolvingNQueens = true;
+                solveNQueensBtn.disabled = true;
+                nQueensSlider.disabled = true;
+                nQueensStatus.textContent = 'Solving...';
+                
+                renderNQueensBoard(nQueensN);
+                const board = Array(nQueensN).fill(0).map(() => Array(nQueensN).fill(0));
+                
+                const found = await solveNQueensUtil(board, 0);
+                
+                nQueensStatus.textContent = found ? 'Solution found!' : 'No solution exists.';
+                isSolvingNQueens = false;
+                solveNQueensBtn.disabled = false;
+                nQueensSlider.disabled = false;
+            });
+            
+            async function solveNQueensUtil(board, col) {
+                if(!isSolvingNQueens) return false;
+                
+                if (col >= nQueensN) {
+                    return true;
+                }
+                
+                for (let i = 0; i < nQueensN; i++) {
+                    if(!isSolvingNQueens) return false;
+                    
+                    nQueensStatus.textContent = `Trying row ${i+1} in column ${col+1}...`;
+                    
+                    if (isSafe(board, i, col)) {
+                        board[i][col] = 1;
+                        document.getElementById(`q-cell-${i}-${col}`).innerHTML = `<div class="queen w-full h-full">♕</div>`;
+                        await sleep(200);
+
+                        if (await solveNQueensUtil(board, col + 1)) {
+                            return true;
+                        }
+                        
+                        if(!isSolvingNQueens) return false;
+                        
+                        // Backtrack
+                        nQueensStatus.textContent = `Backtracking from (${i+1}, ${col+1})...`;
+                        board[i][col] = 0;
+                        document.getElementById(`q-cell-${i}-${col}`).innerHTML = '';
+                        await sleep(200);
+                    } else {
+                         const cell = document.getElementById(`q-cell-${i}-${col}`);
+                         cell.style.backgroundColor = '#ef4444'; // red-500
+                         await sleep(50);
+                         cell.style.backgroundColor = (i+col)%2 === 0 ? '#bae6fd' : 'white';
+                    }
+                }
+                
+                return false;
+            }
+            
+            function isSafe(board, row, col) {
+                let i, j;
+                for (i = 0; i < col; i++) if (board[row][i]) return false;
+                for (i = row, j = col; i >= 0 && j >= 0; i--, j--) if (board[i][j]) return false;
+                for (i = row, j = col; j >= 0 && i < nQueensN; i++, j--) if (board[i][j]) return false;
+                return true;
+            }
+
+
+            // --- Divide & Conquer: Sorting ---
+            const sortViz = document.getElementById('sort-visualization');
+            const sortStatus = document.getElementById('sort-status');
+            const resetSortBtn = document.getElementById('reset-sort-array');
+            let isSorting = false;
+            let sortArray = [];
+
+            function createRandomArray(size = 20) {
+                sortArray = Array.from({length: size}, () => Math.floor(Math.random() * 90) + 10);
+            }
+
+            function renderSortArray() {
+                sortViz.innerHTML = sortArray.map(val => `<div class="array-bar" style="height: ${val}%; width: 4%;">${val}</div>`).join('');
+            }
+            
+            resetSortBtn.addEventListener('click', () => {
+                isSorting = false;
+                createRandomArray();
+                renderSortArray();
+                sortStatus.textContent = '';
+            });
+
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.addEventListener('click', async e => {
+                    if (isSorting) {
+                        isSorting = false;
+                        await sleep(400);
+                    }
+                    isSorting = true;
+                    sortStatus.textContent = 'Sorting...';
+                    if(e.target.dataset.algo === 'mergeSort') {
+                        await mergeSort(0, sortArray.length - 1);
+                    } else {
+                        await quickSort(0, sortArray.length - 1);
+                    }
+                    if(isSorting) {
+                         sortStatus.textContent = 'Sorted!';
+                         // Final green sweep
+                         for(let i=0; i<sortArray.length; i++) {
+                            getBar(i).style.backgroundColor = '#22c55e';
+                            await sleep(25);
+                         }
+                    } else {
+                        sortStatus.textContent = 'Sort cancelled.';
+                    }
+                    isSorting = false;
+                });
+            });
+
+            const getBar = i => sortViz.children[i];
+            
+            async function mergeSort(l, r) {
+                if (!isSorting || l >= r) return;
+                
+                const m = Math.floor(l + (r-l)/2);
+                await mergeSort(l, m);
+                await mergeSort(m+1, r);
+                await merge(l, m, r);
+            }
+
+            async function merge(l, m, r) {
+                 if (!isSorting) return;
+                 let n1 = m - l + 1;
+                 let n2 = r - m;
+                 let L = new Array(n1);
+                 let R = new Array(n2);
+                 for (let i = 0; i < n1; i++) L[i] = sortArray[l + i];
+                 for (let j = 0; j < n2; j++) R[j] = sortArray[m + 1 + j];
+
+                 let i=0, j=0, k=l;
+                 while(i < n1 && j < n2) {
+                     if (!isSorting) return;
+                     getBar(l+i).style.backgroundColor = '#facc15';
+                     getBar(m+1+j).style.backgroundColor = '#facc15';
+                     await sleep(150);
+                     if (L[i] <= R[j]) {
+                         sortArray[k] = L[i]; i++;
+                     } else {
+                         sortArray[k] = R[j]; j++;
+                     }
+                     updateAndRender(k);
+                     k++;
+                 }
+                 while(i < n1) {
+                      if (!isSorting) return;
+                      sortArray[k] = L[i];
+                      updateAndRender(k);
+                      i++; k++; await sleep(50);
+                 }
+                 while(j < n2) {
+                     if (!isSorting) return;
+                     sortArray[k] = R[j];
+                     updateAndRender(k);
+                     j++; k++; await sleep(50);
+                 }
+            }
+
+            async function quickSort(low, high) {
+                if(!isSorting || low >= high) return;
+
+                let pi = await partition(low, high);
+                await quickSort(low, pi - 1);
+                await quickSort(pi + 1, high);
+            }
+            
+            async function partition(low, high) {
+                 if (!isSorting) return high;
+                 let pivot = sortArray[high];
+                 getBar(high).style.backgroundColor = '#f472b6'; // pink
+                 let i = low - 1;
+                 for (let j = low; j < high; j++) {
+                     if (!isSorting) return high;
+                     getBar(j).style.backgroundColor = '#facc15'; // yellow
+                     await sleep(100);
+                     if (sortArray[j] < pivot) {
+                         i++;
+                         [sortArray[i], sortArray[j]] = [sortArray[j], sortArray[i]];
+                         updateAndRender(i);
+                         updateAndRender(j);
+                         getBar(i).style.backgroundColor = '#a78bfa'; // violet
+                     }
+                     getBar(j).style.backgroundColor = '#60a5fa'; // blue
+                 }
+                 [sortArray[i+1], sortArray[high]] = [sortArray[high], sortArray[i+1]];
+                 updateAndRender(i+1);
+                 updateAndRender(high);
+                 for(let k=low; k<=high; k++) getBar(k).style.backgroundColor = '#60a5fa'; // reset colors
+                 getBar(i+1).style.backgroundColor = '#22c55e'; // green
+                 return i+1;
+            }
+
+            function updateAndRender(index) {
+                const bar = getBar(index);
+                bar.style.height = `${sortArray[index]}%`;
+                bar.textContent = sortArray[index];
+            }
+
+            // --- DP: Fibonacci Chart ---
+            const fibCtx = document.getElementById('fib-chart').getContext('2d');
+            const naiveCalls = [1, 1, 3, 5, 9, 15, 25, 41, 67, 109, 177, 287, 465, 753, 1219];
+            const memoCalls = Array.from({length: 15}, (_, i) => i === 0 ? 1 : i * 2 - 1);
+
+            new Chart(fibCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 15}, (_, i) => `F(${i+1})`),
+                    datasets: [{
+                        label: 'Naive Recursive Calls',
+                        data: naiveCalls,
+                        borderColor: '#f43f5e', // rose-500
+                        backgroundColor: '#f43f5e20',
+                        tension: 0.1
+                    }, {
+                        label: 'Memoized Recursive Calls',
+                        data: memoCalls,
+                        borderColor: '#0ea5e9', // sky-500
+                        backgroundColor: '#0ea5e920',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { type: 'logarithmic', title: { display: true, text: 'Number of Calls (Log Scale)' } } },
+                    plugins: { tooltip: { mode: 'index', intersect: false } }
+                }
+            });
+
+            // --- UTILITIES ---
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+            
+            // Initial renders
+            renderTree();
+            renderNQueensBoard(nQueensN);
+            createRandomArray();
+            renderSortArray();
+        });
+
+    </script>
+</body>
+</html>

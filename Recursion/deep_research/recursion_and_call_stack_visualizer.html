@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Recursion & The Call Stack</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Cool Slate -->
+    <!-- Application Structure Plan: The application is designed as a single-page, vertical narrative to guide the user from fundamental concepts to advanced topics. The structure prioritizes active learning over passive reading. It starts with a basic definition, moves to an interactive anatomical view of a stack frame, then presents the core of the app: a dynamic simulation of the call stack for various algorithms. This is followed by visual explanations of failure cases (stack overflow) and optimizations (TCO), and a comparative section (Recursion vs. Iteration). This thematic, interactive flow was chosen because it deconstructs a complex computer science topic into digestible, engaging modules, making the abstract process of memory management concrete and understandable. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Stack Frame Anatomy -> Goal: Inform -> Viz: HTML/CSS Diagram -> Interaction: Hover to reveal details -> Justification: More engaging than a static list. -> Library: None, custom JS/CSS.
+        - Report Info: Factorial/Fibonacci/Tree Traces -> Goal: Explain Process -> Viz: Animated Stack + Code Highlighting -> Interaction: User selects algorithm/input, steps through simulation -> Justification: Makes the core concept of stack push/pop tangible and easy to follow. -> Library: None, custom JS/CSS.
+        - Report Info: Stack Overflow -> Goal: Explain Limits -> Viz: A vertically filling container -> Interaction: User drags a slider to increase depth, triggering an "overflow" -> Justification: A simple, powerful metaphor for resource exhaustion. -> Library: None, custom JS/CSS.
+        - Report Info: Recursion vs. Iteration Comparison -> Goal: Compare -> Viz: Bar Chart -> Interaction: Button click updates chart to show stack usage differences -> Justification: Visually contrasts the memory impact, more effective than a table. -> Library: Chart.js.
+        - Report Info: Tail Call Optimization -> Goal: Explain Optimization -> Viz: Animated Stack Diagram -> Interaction: Toggle "TCO" to see animation change from "add frame" to "reuse frame" -> Justification: Clearly visualizes the optimization's mechanism. -> Library: None, custom JS/CSS.
+        All visualizations are designed to be interactive and avoid static presentation, directly supporting the application's educational goal. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+            color: #334155; /* slate-700 */
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+        .font-mono {
+            font-family: 'Roboto Mono', monospace;
+        }
+        .nav-link {
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .nav-link:hover {
+            color: #4f46e5; /* indigo-600 */
+            border-color: #4f46e5;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .code-block {
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+        .highlight-line {
+            background-color: #334155; /* slate-700 */
+            display: block;
+            margin: 0 -1rem;
+            padding: 0 1rem;
+            border-left: 4px solid #6366f1; /* indigo-500 */
+        }
+        .stack-container {
+            border: 2px solid #e2e8f0; /* slate-200 */
+            min-height: 400px;
+            background-image: repeating-linear-gradient( to bottom, #f8fafc, #f8fafc 49px, #e2e8f0 50px );
+            background-size: 100% 50px;
+        }
+        .stack-frame {
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            transform-origin: bottom;
+            opacity: 1;
+            transform: scaleY(1);
+        }
+        .stack-frame.popping {
+            opacity: 0;
+            transform: scaleY(0);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-lg sticky top-0 z-30 shadow-sm">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4 border-b border-slate-200">
+                <h1 class="text-2xl font-bold text-slate-800">Recursion & The Call Stack</h1>
+                <nav class="hidden md:flex space-x-6 text-sm font-semibold text-slate-600">
+                    <a href="#introduction" class="nav-link border-b-2 border-transparent">Introduction</a>
+                    <a href="#simulation" class="nav-link border-b-2 border-transparent">Simulation</a>
+                    <a href="#overflow" class="nav-link border-b-2 border-transparent">Overflow</a>
+                    <a href="#comparison" class="nav-link border-b-2 border-transparent">Comparison</a>
+                    <a href="#optimization" class="nav-link border-b-2 border-transparent">Optimization</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        
+        <!-- Section 1: Introduction -->
+        <section id="introduction" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">What is Recursion?</h2>
+            <p class="text-lg text-slate-600 max-w-3xl mb-8">
+                Recursion is a powerful programming technique where a function calls itself to solve a problem. It breaks down a complex task into smaller, self-similar subproblems. This process relies on the **call stack**, a memory structure that manages function calls. Each time a function is called, a **stack frame** containing its local data is pushed onto the stack. Let's explore how this works.
+            </p>
+            <div class="card p-6">
+                <h3 class="text-xl font-bold text-slate-800 mb-4">Anatomy of a Stack Frame</h3>
+                <p class="text-slate-600 mb-6">Hover over the components of this simplified stack frame to learn about their roles. Each function call gets its own frame, creating an isolated environment for its data.</p>
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col-reverse text-center font-mono">
+                    <div data-desc="Space for local variables (e.g., 'int result' in factorial) declared inside the function." class="frame-part border-t border-dashed border-slate-300 p-3 hover:bg-indigo-100 cursor-pointer rounded-b-md">Local Variables</div>
+                    <div data-desc="A reference point (base pointer) to the previous frame, linking the stack together." class="frame-part border-t border-dashed border-slate-300 p-3 hover:bg-indigo-100 cursor-pointer">Saved Frame Pointer</div>
+                    <div data-desc="The memory address in the caller function to return to after this function completes." class="frame-part border-t border-dashed border-slate-300 p-3 hover:bg-indigo-100 cursor-pointer">Return Address</div>
+                    <div data-desc="Values passed into the function (e.g., the 'n' in factorial(n))." class="frame-part p-3 hover:bg-indigo-100 cursor-pointer rounded-t-md">Parameters</div>
+                </div>
+                <div id="frame-desc" class="mt-4 text-center h-12 flex items-center justify-center p-2 bg-slate-100 rounded-md text-slate-700 text-sm font-semibold">
+                    Hover over a part to see its description.
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Interactive Simulation -->
+        <section id="simulation" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4 text-center">Live Stack Simulation</h2>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto text-center mb-8">
+                This is the core of our exploration. Choose a recursive algorithm and an input value. Then, step through the execution to see how the call stack grows and shrinks. Observe how each frame holds its own state, enabling the recursive process.
+            </p>
+            
+            <div class="card p-6">
+                <div class="flex flex-wrap justify-center items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+                    <div class="flex items-center gap-2">
+                        <label for="algo-select" class="font-semibold">Algorithm:</label>
+                        <select id="algo-select" class="rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="factorial">Factorial</option>
+                            <option value="fibonacci">Fibonacci</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="n-input" class="font-semibold">Input (n):</label>
+                        <input type="number" id="n-input" value="3" min="0" max="5" class="rounded-md border-slate-300 shadow-sm w-20 focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="reset-btn" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-md transition">Reset</button>
+                        <button id="step-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition">Step</button>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Code & Explanation Panel -->
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Execution Trace</h3>
+                        <p id="sim-explanation" class="text-sm text-slate-500 h-16 mb-2">Press 'Reset', then 'Step' to begin the simulation.</p>
+                        <div class="code-block">
+<pre><code id="code-display">
+Select an algorithm to see the code.
+</code></pre>
+                        </div>
+                    </div>
+                    <!-- Stack Visualization Panel -->
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2 text-center">The Call Stack</h3>
+                        <div class="stack-container relative flex flex-col-reverse justify-start p-2 rounded-lg bg-slate-50" id="stack-visual">
+                            <div class="text-center text-slate-400 p-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">Stack is empty</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Stack Overflow -->
+        <section id="overflow" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4 text-center">When Recursion Goes Too Deep</h2>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto text-center mb-8">
+                The call stack has a finite size. If a recursive function calls itself too many times—either due to a very large input or a missing base case—it will exhaust the available stack memory. This critical error is called a **stack overflow**.
+            </p>
+            <div class="card p-6">
+                 <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">Visualize a Stack Overflow</h3>
+                 <p class="text-center text-slate-600 mb-4">Drag the slider to increase the "recursion depth". Watch the stack fill up until it exceeds its limit.</p>
+                 <div class="flex flex-col md:flex-row items-center justify-center gap-8">
+                    <div class="w-full md:w-1/2 lg:w-1/3">
+                        <label for="depth-slider" class="font-semibold text-slate-700">Recursion Depth: <span id="depth-value">0</span></label>
+                        <input id="depth-slider" type="range" min="0" max="100" value="0" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div class="w-32 h-64 bg-slate-200 rounded-lg border-2 border-slate-300 flex flex-col justify-end relative overflow-hidden">
+                        <div id="stack-fill" class="bg-gradient-to-t from-amber-400 to-red-500 w-full transition-all duration-300" style="height: 0%;"></div>
+                        <div id="overflow-msg" class="absolute inset-0 bg-red-600/90 text-white flex items-center justify-center text-center font-bold text-lg opacity-0 transition-opacity">
+                            STACK<br>OVERFLOW
+                        </div>
+                    </div>
+                 </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Recursion vs. Iteration -->
+        <section id="comparison" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4 text-center">Recursion vs. Iteration</h2>
+            <p class="text-lg text-slate-600 max-w-3xl mx-auto text-center mb-8">
+                Any recursive algorithm can be rewritten iteratively using loops. While recursion can be more elegant, iteration is often more efficient in C, especially regarding memory. Let's compare their stack usage for the factorial problem.
+            </p>
+            <div class="card p-6">
+                <div class="grid md:grid-cols-2 gap-8 mb-6">
+                    <div>
+                        <h4 class="font-bold text-lg mb-2">Recursive Factorial</h4>
+                        <div class="code-block text-sm">
+<pre>long factorial_rec(int n) {
+  if (n <= 1) return 1;
+  return n * factorial_rec(n - 1);
+}</pre>
+                        </div>
+                    </div>
+                     <div>
+                        <h4 class="font-bold text-lg mb-2">Iterative Factorial</h4>
+                        <div class="code-block text-sm">
+<pre>long factorial_iter(int n) {
+  long res = 1;
+  for (int i = 2; i <= n; i++) {
+    res *= i;
+  }
+  return res;
+}</pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mb-6">
+                    <p class="text-slate-600">The recursive version creates a new stack frame for each call, consuming memory proportional to `n`. The iterative version uses a single stack frame, regardless of `n`.</p>
+                </div>
+                <div class="chart-container relative w-full max-w-2xl mx-auto h-80 md:h-96">
+                    <canvas id="comparison-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Tail Call Optimization -->
+        <section id="optimization" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4 text-center">A Special Case: Tail Recursion</h2>
+             <p class="text-lg text-slate-600 max-w-3xl mx-auto text-center mb-8">
+                When a recursive call is the absolute last action in a function, it's called a "tail call". Modern compilers can perform **Tail Call Optimization (TCO)**, transforming the recursion into an efficient loop behind the scenes. This reuses the current stack frame instead of creating a new one, preventing stack overflow.
+            </p>
+            <div class="card p-6">
+                <p class="text-center text-slate-600 mb-6">Note how the tail-recursive version uses an 'accumulator' parameter to pass the result forward, making the recursive call the final step.</p>
+                 <div class="grid md:grid-cols-2 gap-8 mb-6">
+                    <div>
+                        <h4 class="font-bold text-lg mb-2">Standard Recursion</h4>
+                        <div class="code-block text-sm">
+<pre>int fact(int n) {
+  if (n <= 1) return 1;
+  // Multiplication happens AFTER
+  // the recursive call returns.
+  return n * fact(n - 1);
+}</pre>
+                        </div>
+                    </div>
+                     <div>
+                        <h4 class="font-bold text-lg mb-2">Tail Recursion</h4>
+                        <div class="code-block text-sm">
+<pre>int fact_tail(int n, int acc) {
+  if (n <= 1) return acc;
+  // Recursive call is the
+  // FINAL action.
+  return fact_tail(n - 1, n * acc);
+}</pre>
+                        </div>
+                    </div>
+                </div>
+                 <h3 class="text-xl font-bold text-slate-800 mb-4 text-center">TCO Visualization</h3>
+                 <div class="flex items-center justify-center gap-4 mb-4">
+                    <span class="font-semibold">Compiler TCO:</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="tco-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                    <span id="tco-status" class="font-semibold text-red-600">OFF</span>
+                </div>
+                 <div class="flex justify-center items-center p-4 bg-slate-100 rounded-lg min-h-[12rem]">
+                    <div id="tco-anim" class="text-center">
+                        Click the button to simulate a recursive call.
+                    </div>
+                 </div>
+                 <div class="text-center mt-4">
+                     <button id="tco-call-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition">Call fact(5)</button>
+                 </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 mt-16">
+        <div class="container mx-auto px-4 py-6 text-center text-sm">
+            <p>&copy; 2025 Interactive Learning. An application to visualize C recursion and stack memory.</p>
+        </div>
+    </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    // Section 1: Stack Frame Anatomy
+    const frameParts = document.querySelectorAll('.frame-part');
+    const frameDesc = document.getElementById('frame-desc');
+    const initialDesc = frameDesc.innerHTML;
+    frameParts.forEach(part => {
+        part.addEventListener('mouseover', () => {
+            frameDesc.textContent = part.dataset.desc;
+        });
+        part.addEventListener('mouseout', () => {
+            frameDesc.innerHTML = initialDesc;
+        });
+    });
+
+    // Section 2: Interactive Simulation
+    const algoSelect = document.getElementById('algo-select');
+    const nInput = document.getElementById('n-input');
+    const resetBtn = document.getElementById('reset-btn');
+    const stepBtn = document.getElementById('step-btn');
+    const codeDisplay = document.getElementById('code-display');
+    const stackVisual = document.getElementById('stack-visual');
+    const simExplanation = document.getElementById('sim-explanation');
+
+    const code = {
+        factorial: [
+            "long factorial(int n) {", // 0
+            "  if (n <= 1) {",        // 1
+            "    return 1;",           // 2
+            "  } else {",             // 3
+            "    return n * factorial(n - 1);", // 4
+            "  }",                    // 5
+            "}",                      // 6
+        ],
+        fibonacci: [
+            "int fibonacci(int n) {",   // 0
+            "  if (n <= 1) {",          // 1
+            "    return n;",             // 2
+            "  } else {",               // 3
+            "    int res1 = fibonacci(n - 1);", // 4
+            "    int res2 = fibonacci(n - 2);", // 5
+            "    return res1 + res2;",   // 6
+            "  }",                      // 7
+            "}",                        // 8
+        ]
+    };
+
+    let simState = {};
+
+    function resetSimulation() {
+        const algo = algoSelect.value;
+        const n = parseInt(nInput.value);
+        simState = {
+            algo: algo,
+            n: n,
+            trace: [],
+            currentStep: 0,
+            stack: [],
+        };
+        generateTrace();
+        updateUI();
+        stepBtn.disabled = false;
+    }
+    
+    function generateTrace() {
+        if (simState.algo === 'factorial') {
+            genFactorialTrace(simState.n);
+        } else if (simState.algo === 'fibonacci') {
+            genFibonacciTrace(simState.n);
+        }
+    }
+
+    function genFactorialTrace(n, callStackDepth = 0) {
+        simState.trace.push({ type: 'call', n: n, line: 0, depth: callStackDepth, exp: `Calling factorial(${n}). Pushing a new frame onto the stack.` });
+        simState.trace.push({ type: 'check', n: n, line: 1, depth: callStackDepth, exp: `Checking base case: is ${n} <= 1?` });
+        if (n <= 1) {
+            simState.trace.push({ type: 'return', n: n, line: 2, depth: callStackDepth, val: 1, exp: `Base case met. Returning 1. Popping frame.` });
+            return 1;
+        } else {
+            simState.trace.push({ type: 'recurse', n: n, line: 4, depth: callStackDepth, exp: `Recursive step. Must compute factorial(${n-1}) first.` });
+            const result = genFactorialTrace(n - 1, callStackDepth + 1);
+            const finalResult = n * result;
+            simState.trace.push({ type: 'compute_return', n: n, line: 4, depth: callStackDepth, val: finalResult, sub_val: result, exp: `Received ${result} from factorial(${n-1}). Computing ${n} * ${result} = ${finalResult}.` });
+            return finalResult;
+        }
+    }
+
+    function genFibonacciTrace(n, callStackDepth = 0) {
+        simState.trace.push({ type: 'call', n: n, line: 0, depth: callStackDepth, exp: `Calling fibonacci(${n}).` });
+        simState.trace.push({ type: 'check', n: n, line: 1, depth: callStackDepth, exp: `Checking base case: is ${n} <= 1?` });
+        if (n <= 1) {
+            simState.trace.push({ type: 'return', n: n, line: 2, depth: callStackDepth, val: n, exp: `Base case met. Returning ${n}. Popping frame.` });
+            return n;
+        } else {
+            simState.trace.push({ type: 'recurse1', n: n, line: 4, depth: callStackDepth, exp: `First recursive call: fibonacci(${n-1}).` });
+            const res1 = genFibonacciTrace(n - 1, callStackDepth + 1);
+            simState.trace.push({ type: 'resume1', n: n, line: 4, depth: callStackDepth, val: res1, exp: `Returned from fibonacci(${n-1}) with value ${res1}. Now preparing second call.` });
+            
+            simState.trace.push({ type: 'recurse2', n: n, line: 5, depth: callStackDepth, exp: `Second recursive call: fibonacci(${n-2}).` });
+            const res2 = genFibonacciTrace(n - 2, callStackDepth + 1);
+            simState.trace.push({ type: 'resume2', n: n, line: 5, depth: callStackDepth, val: res2, exp: `Returned from fibonacci(${n-2}) with value ${res2}.` });
+
+            const finalResult = res1 + res2;
+            simState.trace.push({ type: 'compute_return', n: n, line: 6, depth: callStackDepth, val: finalResult, exp: `Computing ${res1} + ${res2} = ${finalResult}. Returning value.` });
+            return finalResult;
+        }
+    }
+    
+    function stepSimulation() {
+        if (simState.currentStep >= simState.trace.length) {
+            simExplanation.textContent = 'Simulation complete. Press Reset to start again.';
+            stepBtn.disabled = true;
+            return;
+        }
+
+        const step = simState.trace[simState.currentStep];
+        
+        if (step.type === 'call' || step.type === 'recurse1' || step.type === 'recurse2') {
+             const frameId = `frame-${step.depth}-${Date.now()}`;
+             simState.stack.push({
+                id: frameId,
+                name: `${simState.algo}(${step.n})`,
+                state: 'pending...',
+             });
+        } else if (step.type === 'return' || step.type === 'compute_return') {
+            const frame = simState.stack[simState.stack.length - 1];
+            if (frame) {
+                frame.state = `returned ${step.val}`;
+            }
+            setTimeout(() => {
+                if(simState.stack.length > 0) simState.stack.pop();
+                updateUI();
+            }, 500);
+        } else if(step.type.startsWith('resume')) {
+            const frame = simState.stack[simState.stack.length-1];
+            if(frame) frame.state = `resumed`;
+        }
+        
+        simExplanation.textContent = step.exp;
+        simState.currentStep++;
+        updateUI(step);
+    }
+    
+    function updateUI(step) {
+        const algo = simState.algo;
+        codeDisplay.innerHTML = code[algo]
+            .map((line, i) => {
+                if (step && i === step.line) {
+                    return `<span class="highlight-line">${line.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>`;
+                }
+                return `<span>${line.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>`;
+            })
+            .join('\n');
+
+        if (simState.stack.length === 0) {
+            stackVisual.innerHTML = `<div class="text-center text-slate-400 p-4 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">Stack is empty</div>`;
+        } else {
+            stackVisual.innerHTML = simState.stack.map(frame => 
+                `<div id="${frame.id}" class="stack-frame h-[50px] bg-white border-t-2 border-indigo-200 flex items-center justify-center font-mono font-semibold text-indigo-800 shadow-sm rounded-md mb-1">
+                    ${frame.name} <span class="ml-2 text-sm text-indigo-500 font-normal">(${frame.state})</span>
+                 </div>`
+            ).join('');
+            
+            // Add pop animation
+            if (step && (step.type === 'return' || step.type === 'compute_return')) {
+                 const frameElem = document.getElementById(simState.stack[simState.stack.length - 1].id);
+                 if(frameElem) frameElem.classList.add('popping');
+            }
+        }
+    }
+
+    resetBtn.addEventListener('click', resetSimulation);
+    stepBtn.addEventListener('click', stepSimulation);
+    algoSelect.addEventListener('change', resetSimulation);
+    resetSimulation();
+
+
+    // Section 3: Stack Overflow
+    const depthSlider = document.getElementById('depth-slider');
+    const depthValue = document.getElementById('depth-value');
+    const stackFill = document.getElementById('stack-fill');
+    const overflowMsg = document.getElementById('overflow-msg');
+    
+    depthSlider.addEventListener('input', () => {
+        const val = depthSlider.value;
+        depthValue.textContent = val;
+        stackFill.style.height = `${val}%`;
+        if (val >= 100) {
+            overflowMsg.style.opacity = '1';
+        } else {
+            overflowMsg.style.opacity = '0';
+        }
+    });
+
+    // Section 4: Comparison Chart
+    const ctx = document.getElementById('comparison-chart').getContext('2d');
+    let comparisonChart;
+    function renderComparisonChart(n) {
+        if(comparisonChart) {
+            comparisonChart.destroy();
+        }
+        comparisonChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Stack Space Used', 'Function Call Overhead'],
+                datasets: [
+                    {
+                        label: 'Recursion',
+                        data: [10 * n, 8 * n],
+                        backgroundColor: 'rgba(239, 68, 68, 0.6)', // red-500
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Iteration',
+                        data: [10, 5],
+                        backgroundColor: 'rgba(34, 197, 94, 0.6)', // green-500
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `Estimated Resource Usage for n = ${n}`,
+                        font: { size: 16 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                           label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += `${context.raw} (conceptual units)`;
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Conceptual Resource Units'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    renderComparisonChart(10);
+    nInput.addEventListener('change', () => renderComparisonChart(parseInt(nInput.value) || 10));
+
+    // Section 5: TCO
+    const tcoToggle = document.getElementById('tco-toggle');
+    const tcoStatus = document.getElementById('tco-status');
+    const tcoAnim = document.getElementById('tco-anim');
+    const tcoCallBtn = document.getElementById('tco-call-btn');
+    let tcoState = { n: 5, acc: 1 };
+    
+    tcoToggle.addEventListener('change', () => {
+        if (tcoToggle.checked) {
+            tcoStatus.textContent = 'ON';
+            tcoStatus.className = 'font-semibold text-green-600';
+        } else {
+            tcoStatus.textContent = 'OFF';
+            tcoStatus.className = 'font-semibold text-red-600';
+        }
+    });
+
+    tcoCallBtn.addEventListener('click', () => {
+        tcoState = { n: 5, acc: 1 };
+        if (tcoToggle.checked) {
+             tcoAnim.innerHTML = `<div class="text-center">
+                <p class="mb-2">Calling fact_tail(${tcoState.n}, ${tcoState.acc}). Frame is created.</p>
+                <div class="stack-frame inline-block px-4 py-2 bg-white border-2 border-green-300 rounded-md font-mono">Frame for fact_tail(${tcoState.n}, ${tcoState.acc})</div>
+             </div>`;
+        } else {
+             tcoAnim.innerHTML = `<div class="text-center">
+                <p class="mb-2">Calling fact(${tcoState.n}). Frame is created.</p>
+                <div class="stack-frame inline-block px-4 py-2 bg-white border-2 border-red-300 rounded-md font-mono">Frame for fact(${tcoState.n})</div>
+             </div>`;
+        }
+        tcoCallBtn.textContent = `Call fact(${tcoState.n-1})`;
+        tcoState.n--;
+    });
+
+    tcoCallBtn.addEventListener('click', () => {
+        if(tcoState.n <= 1) {
+            tcoAnim.innerHTML += `<p class="mt-4 font-bold">Base case reached. Returning final value.</p>`;
+            tcoCallBtn.textContent = 'Call fact(5)';
+            tcoState = {n: 5, acc: 1};
+            return;
+        }
+
+        if (tcoToggle.checked) { // TCO is ON
+            tcoAnim.innerHTML = `<div class="text-center">
+                <p class="mb-2">Calling fact_tail(${tcoState.n}, ${tcoState.acc * (tcoState.n+1)}). Frame is <strong class="text-green-600">REUSED</strong>.</p>
+                <div class="stack-frame inline-block px-4 py-2 bg-white border-2 border-green-300 rounded-md font-mono animate-pulse">Frame for fact_tail(${tcoState.n}, ...)</div>
+             </div>`;
+        } else { // TCO is OFF
+            tcoAnim.innerHTML += `<div class="text-center mt-2">
+                <p class="mb-2">Calling fact(${tcoState.n}). <strong class="text-red-600">NEW</strong> frame is pushed.</p>
+                <div class="stack-frame inline-block px-4 py-2 bg-white border-2 border-red-300 rounded-md font-mono">Frame for fact(${tcoState.n})</div>
+             </div>`;
+        }
+        
+        tcoState.acc *= (tcoState.n+1);
+        tcoCallBtn.textContent = `Call fact(${tcoState.n-1})`;
+        tcoState.n--;
+    });
+
+});
+</script>
+</body>
+</html>

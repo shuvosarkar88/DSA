@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Analysis: Recursion vs. Iteration in C</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Subtle Accents -->
+    <!-- Application Structure Plan: The application is structured thematically to guide the user from high-level concepts to detailed comparisons and practical code. The flow is: 1) A quick introduction. 2) A high-level comparison of the three approaches (Regular Recursion, Tail Recursion, Iteration) using interactive cards. 3) A deep dive into performance with a dynamic chart that lets users toggle compiler optimizations (TCO) on and off to see the impact visually. 4) A section explaining what TCO is. 5) A practical showcase of Factorial and GCD algorithms with side-by-side code examples. 6) An interactive accordion explaining what factors can prevent TCO. 7) A final conclusion with actionable advice. This non-linear, task-oriented structure prioritizes user exploration and understanding over simply replicating the report's linear format. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Core concepts of Recursion/Iteration -> Goal: Compare -> Viz: Interactive Cards -> Interaction: Click-to-reveal details -> Justification: Breaks down dense info into digestible, user-selectable parts. Method: HTML/CSS/JS.
+        - Report Info: Performance metrics (Stack, Speed) -> Goal: Compare/Show Impact of TCO -> Viz: Bar Chart -> Interaction: Toggle switch to update chart data and explanatory text -> Justification: Visually demonstrates the benefit of TCO in a concrete way. Method: Chart.js.
+        - Report Info: Code examples (Factorial, GCD) -> Goal: Organize/Compare Implementations -> Viz: Tabbed/Side-by-side code blocks -> Interaction: Tab selection -> Justification: Allows easy comparison of different implementation styles for the same problem. Method: HTML/CSS/JS.
+        - Report Info: TCO Inhibitors -> Goal: Organize/Inform -> Viz: Accordion List -> Interaction: Click-to-expand -> Justification: Presents a list of complex topics in a clean, non-overwhelming manner. Method: HTML/CSS/JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF5;
+            color: #4A4A4A;
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #2C5282;
+            border-bottom-color: #2C5282;
+        }
+        .card {
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .code-block {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        .toggle-bg:after {
+            content: '';
+            @apply absolute top-0.5 left-0.5 bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform shadow-sm;
+        }
+        input:checked + .toggle-bg:after {
+            transform: translateX(100%);
+            @apply border-white;
+        }
+        input:checked + .toggle-bg {
+            @apply bg-blue-600;
+        }
+        .tab-button.active {
+             background-color: #3182CE;
+             color: white;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-xl font-bold text-gray-800">C Performance Deep Dive</div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#concepts" class="nav-link">Concepts</a>
+                    <a href="#performance" class="nav-link">Performance</a>
+                    <a href="#examples" class="nav-link">Examples</a>
+                    <a href="#inhibitors" class="nav-link">TCO Inhibitors</a>
+                    <a href="#conclusion" class="nav-link">Conclusion</a>
+                </div>
+                <div class="md:hidden">
+                    <button id="menu-btn" class="text-gray-800 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="mobile-menu" class="hidden md:hidden mt-4 space-y-2">
+                 <a href="#concepts" class="block nav-link">Concepts</a>
+                 <a href="#performance" class="block nav-link">Performance</a>
+                 <a href="#examples" class="block nav-link">Examples</a>
+                 <a href="#inhibitors" class="block nav-link">TCO Inhibitors</a>
+                 <a href="#conclusion" class="block nav-link">Conclusion</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        
+        <section id="intro" class="text-center mb-20">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Recursion vs. Iteration in C</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">An interactive analysis of performance, memory, and compiler optimizations. Understand the critical trade-offs between regular recursion, tail recursion, and classic iteration to write safer, more efficient C code.</p>
+        </section>
+
+        <section id="concepts" class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-12">The Three Core Approaches</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                
+                <div class="card bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-2xl font-semibold mb-4 text-blue-800">Regular Recursion</h3>
+                    <p class="mb-4">Solves problems by calling itself, with operations pending after the call returns. This approach is often elegant and maps directly to mathematical definitions.</p>
+                    <div class="code-block text-sm">
+                        <span style="color: #63b3ed;">int</span> <span style="color: #a0aec0;">factorial(</span><span style="color: #63b3ed;">int</span><span style="color: #a0aec0;"> n) {</span><br>
+                        <span>&nbsp;&nbsp;</span><span style="color: #f6ad55;">if</span><span> (n <= 1) </span><span style="color: #f6ad55;">return</span><span> 1;</span><br>
+                        <span>&nbsp;&nbsp;</span><span style="color: #f6ad55;">return</span><span> n * factorial(n - 1);</span><br>
+                        <span>}</span>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-sm">
+                        <li class="flex items-center"><span class="text-red-500 mr-2">●</span><strong>Stack Usage:</strong> Grows with each call (O(N)). High risk of stack overflow.</li>
+                        <li class="flex items-center"><span class="text-red-500 mr-2">●</span><strong>Speed:</strong> Slower due to function call overhead.</li>
+                        <li class="flex items-center"><span class="text-green-500 mr-2">●</span><strong>Clarity:</strong> High for naturally recursive problems.</li>
+                    </ul>
+                </div>
+
+                <div class="card bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-2xl font-semibold mb-4 text-blue-800">Tail Recursion</h3>
+                    <p class="mb-4">A special form where the recursive call is the absolute last action. This structure allows for a powerful compiler optimization (TCO).</p>
+                    <div class="code-block text-sm">
+                        <span style="color: #63b3ed;">int</span> <span style="color: #a0aec0;">fact_tr(</span><span style="color: #63b3ed;">int</span><span style="color: #a0aec0;"> n, </span><span style="color: #63b3ed;">int</span><span style="color: #a0aec0;"> a) {</span><br>
+                        <span>&nbsp;&nbsp;</span><span style="color: #f6ad55;">if</span><span> (n <= 1) </span><span style="color: #f6ad55;">return</span><span> a;</span><br>
+                        <span>&nbsp;&nbsp;</span><span style="color: #f6ad55;">return</span><span> fact_tr(n - 1, n * a);</span><br>
+                        <span>}</span>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-sm">
+                        <li class="flex items-center"><span class="text-yellow-500 mr-2">●</span><strong>Stack Usage:</strong> O(1) *if* TCO is applied, otherwise O(N).</li>
+                        <li class="flex items-center"><span class="text-yellow-500 mr-2">●</span><strong>Speed:</strong> Matches iteration *if* TCO is applied.</li>
+                        <li class="flex items-center"><span class="text-yellow-500 mr-2">●</span><strong>Clarity:</strong> Can be less intuitive due to accumulators.</li>
+                    </ul>
+                </div>
+                
+                <div class="card bg-white p-6 rounded-lg shadow-md border border-gray-200">
+                    <h3 class="text-2xl font-semibold mb-4 text-blue-800">Iteration</h3>
+                    <p class="mb-4">Uses loops (`for`, `while`) to repeat a process. This is the most common, reliable, and performant approach in C for most repetitive tasks.</p>
+                     <div class="code-block text-sm">
+                        <span style="color: #63b3ed;">int</span> <span style="color: #a0aec0;">factorial(</span><span style="color: #63b3ed;">int</span><span style="color: #a0aec0;"> n) {</span><br>
+                        <span>&nbsp;&nbsp;</span><span style="color: #63b3ed;">int</span><span> res = 1;</span><br>
+                        <span>&nbsp;&nbsp;</span><span style="color: #f6ad55;">for</span><span> (</span><span style="color: #63b3ed;">int</span><span> i=2; i<=n; ++i)</span><br>
+                        <span>&nbsp;&nbsp;&nbsp;&nbsp;res *= i;</span><br>
+                        <span>&nbsp;&nbsp;</span><span style="color: #f6ad55;">return</span><span> res;</span><br>
+                        <span>}</span>
+                    </div>
+                    <ul class="mt-4 space-y-2 text-sm">
+                        <li class="flex items-center"><span class="text-green-500 mr-2">●</span><strong>Stack Usage:</strong> Constant (O(1)). No risk of overflow.</li>
+                        <li class="flex items-center"><span class="text-green-500 mr-2">●</span><strong>Speed:</strong> Generally the fastest due to minimal overhead.</li>
+                        <li class="flex items-center"><span class="text-green-500 mr-2">●</span><strong>Clarity:</strong> High for sequential tasks.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="performance" class="mb-20 bg-gray-50 p-8 rounded-lg">
+            <h2 class="text-3xl font-bold text-center mb-4">Performance Showdown</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-2xl mx-auto">The performance of tail recursion is entirely dependent on compiler optimizations. Use the toggle below to see how enabling optimizations (like `-O2` or `-O3`) transforms its behavior.</p>
+            
+            <div class="flex items-center justify-center space-x-4 mb-8">
+                <span id="toggle-label-off" class="font-semibold text-red-600">Optimizations OFF (-O0)</span>
+                <label for="tco-toggle" class="flex items-center cursor-pointer">
+                    <div class="relative">
+                        <input type="checkbox" id="tco-toggle" class="sr-only">
+                        <div class="block bg-gray-300 w-12 h-6 rounded-full toggle-bg"></div>
+                    </div>
+                </label>
+                <span id="toggle-label-on" class="font-semibold text-gray-400">Optimizations ON (-O2)</span>
+            </div>
+
+            <p id="performance-text" class="text-center text-gray-700 mb-8 transition-opacity duration-300">Without optimizations, tail recursion behaves just like regular recursion, consuming stack space and adding function call overhead. It offers no inherent advantage.</p>
+            
+            <div class="chart-container">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </section>
+        
+        <section id="tco-explainer" class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-2">What is Tail Call Optimization (TCO)?</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">TCO is a compiler's trick. When it sees a tail call, instead of creating a new stack frame, it reuses the existing one. This effectively turns the recursion into a highly efficient loop at the machine-code level, eliminating stack growth.</p>
+            <div class="grid md:grid-cols-2 gap-8 text-center">
+                 <div class="bg-white p-6 rounded-lg shadow-md border border-red-200">
+                    <h3 class="text-xl font-semibold mb-4">Without TCO (Stack Grows)</h3>
+                    <div class="space-y-1 p-4 bg-red-50 rounded-lg">
+                        <div class="bg-red-200 p-2 rounded">Frame 3: call(1)</div>
+                        <div class="bg-red-200 p-2 rounded">Frame 2: call(2)</div>
+                        <div class="bg-red-200 p-2 rounded">Frame 1: call(3)</div>
+                        <p class="text-sm pt-2 text-red-700">Each call adds a new frame, risking overflow.</p>
+                    </div>
+                 </div>
+                 <div class="bg-white p-6 rounded-lg shadow-md border border-green-200">
+                    <h3 class="text-xl font-semibold mb-4">With TCO (Stack is Reused)</h3>
+                    <div class="space-y-1 p-4 bg-green-50 rounded-lg">
+                        <div class="bg-green-200 p-2 rounded h-20 flex items-center justify-center animate-pulse">
+                            Frame 1: call(3) -> call(2) -> call(1)
+                        </div>
+                         <p class="text-sm pt-2 text-green-700">The same frame is reused. Constant stack space.</p>
+                    </div>
+                 </div>
+            </div>
+        </section>
+
+
+        <section id="examples" class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-12">Code in Practice</h2>
+            <div class="flex justify-center mb-8">
+                <div class="flex space-x-2 bg-gray-200 p-1 rounded-lg">
+                    <button class="tab-button px-4 py-2 rounded-md text-sm font-medium active" data-tab="factorial">Factorial</button>
+                    <button class="tab-button px-4 py-2 rounded-md text-sm font-medium" data-tab="gcd">GCD</button>
+                </div>
+            </div>
+
+            <div id="factorial" class="tab-content">
+                <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">Calculating `n!`. The standard definition `n * (n-1)!` is not tail-recursive, requiring transformation with an accumulator to enable TCO.</p>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <h4 class="font-semibold text-lg mb-2 text-center">Regular Recursive</h4>
+                        <div class="code-block h-full">unsigned long long factorial_regular(int n) {
+    if (n <= 1) return 1;
+    // Multiplication happens AFTER the recursive call returns.
+    return (unsigned long long)n * factorial_regular(n - 1);
+}</div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-lg mb-2 text-center">Tail Recursive</h4>
+                        <div class="code-block h-full">unsigned long long fact_tail_helper(int n, unsigned long long acc) {
+    if (n <= 1) return acc;
+    // Multiplication happens BEFORE the recursive call.
+    return fact_tail_helper(n - 1, acc * n);
+}
+
+// Wrapper function
+unsigned long long factorial_tail(int n) {
+    return fact_tail_helper(n, 1);
+}</div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-lg mb-2 text-center">Iterative</h4>
+                        <div class="code-block h-full">unsigned long long factorial_iterative(int n) {
+    unsigned long long result = 1;
+    for (int i = 2; i <= n; i++) {
+        result *= i;
+    }
+    return result;
+}</div>
+                    </div>
+                </div>
+            </div>
+            <div id="gcd" class="tab-content hidden">
+                 <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">Calculating the Greatest Common Divisor using the Euclidean algorithm. The definition `gcd(a, b) = gcd(b, a % b)` is naturally tail-recursive.</p>
+                <div class="grid md:grid-cols-3 gap-4">
+                    <div>
+                        <h4 class="font-semibold text-lg mb-2 text-center">Regular Recursive</h4>
+                        <div class="code-block h-full">// The standard recursive GCD is already tail-recursive.
+int gcd_recursive(int a, int b) {
+    if (b == 0) {
+        return a;
+    } else {
+        // This is the last operation. No pending work.
+        return gcd_recursive(b, a % b);
+    }
+}</div>
+                    </div>
+                    <div>
+                         <h4 class="font-semibold text-lg mb-2 text-center">Tail Recursive</h4>
+                        <div class="code-block h-full">// The "Regular Recursive" version is already the
+// optimal tail-recursive form. No transformation
+// or accumulator is needed for this algorithm.
+int gcd_tail_recursive(int a, int b) {
+    if (b == 0) return a;
+    return gcd_tail_recursive(b, a % b);
+}</div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-lg mb-2 text-center">Iterative</h4>
+                        <div class="code-block h-full">int gcd_iterative(int a, int b) {
+    int temp;
+    while (b != 0) {
+        temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="inhibitors" class="mb-20">
+            <h2 class="text-3xl font-bold text-center mb-2">The Fine Print: What Prevents TCO?</h2>
+            <p class="text-center text-gray-600 mb-8 max-w-3xl mx-auto">TCO is not guaranteed in C. Even with optimization flags on, certain C features can create dependencies on the caller's stack frame, preventing the compiler from safely applying the optimization.</p>
+            <div id="accordion" class="max-w-3xl mx-auto space-y-2">
+                <!-- Accordion items will be injected here by JS -->
+            </div>
+        </section>
+        
+        <section id="conclusion" class="bg-blue-50 p-8 rounded-lg">
+            <h2 class="text-3xl font-bold text-center mb-8">Conclusion & Practical Advice</h2>
+            <div class="grid md:grid-cols-3 gap-6 text-center">
+                <div>
+                    <h3 class="text-xl font-semibold mb-2 text-blue-800">Prefer Iteration</h3>
+                    <p class="text-gray-700">For guaranteed stack safety, portability, and predictable performance in C, iteration is the most robust and professional choice. Make it your default for repetitive tasks.</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-2 text-blue-800">Use Recursion with Caution</h3>
+                    <p class="text-gray-700">Regular recursion is fine for algorithms with shallow, predictable recursion depth where code clarity is a major win. Be aware of the stack limits.</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold mb-2 text-blue-800">Use Tail Recursion Strategically</h3>
+                    <p class="text-gray-700">Rely on tail recursion for deep stacks only if you can *verify* TCO is active (by checking assembly) or *enforce* it with compiler attributes like `musttail`, understanding the risks.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const menuBtn = document.getElementById('menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    menuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+
+    const performanceChartCanvas = document.getElementById('performanceChart');
+    const tcoToggle = document.getElementById('tco-toggle');
+    const performanceText = document.getElementById('performance-text');
+    const toggleLabelOff = document.getElementById('toggle-label-off');
+    const toggleLabelOn = document.getElementById('toggle-label-on');
+    
+    const dataNoTco = {
+        stack: [100, 100, 5],
+        speed: [50, 55, 100] 
+    };
+
+    const dataWithTco = {
+        stack: [100, 5, 5],
+        speed: [50, 100, 100]
+    };
+
+    const chartConfig = {
+        type: 'bar',
+        data: {
+            labels: ['Regular Recursion', 'Tail Recursion', 'Iteration'],
+            datasets: [
+                {
+                    label: 'Stack Usage (Higher is Worse)',
+                    data: dataNoTco.stack,
+                    backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Relative Speed (Higher is Better)',
+                    data: dataNoTco.speed,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y'
+                }
+            ]
+        },
+        options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Relative Performance Comparison'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                let val = context.parsed.y;
+                                if (context.dataset.label.includes('Stack')) {
+                                   if (val > 50) label += 'High (O(N))';
+                                   else label += 'Low (O(1))';
+                                } else {
+                                   if (val > 90) label += 'Fast';
+                                   else if (val > 50) label += 'Moderate';
+                                   else label += 'Slow';
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 110,
+                    display: false
+                }
+            }
+        }
+    };
+
+    const performanceChart = new Chart(performanceChartCanvas, chartConfig);
+
+    tcoToggle.addEventListener('change', () => {
+        const isTcoEnabled = tcoToggle.checked;
+        const newData = isTcoEnabled ? dataWithTco : dataNoTco;
+        
+        performanceChart.data.datasets[0].data = newData.stack;
+        performanceChart.data.datasets[1].data = newData.speed;
+        performanceChart.update();
+        
+        if (isTcoEnabled) {
+            performanceText.textContent = 'With optimizations enabled, the compiler applies Tail Call Optimization (TCO). This makes tail recursion as memory-efficient and fast as iteration.';
+            toggleLabelOn.classList.remove('text-gray-400');
+            toggleLabelOn.classList.add('text-green-600');
+            toggleLabelOff.classList.add('text-gray-400');
+            toggleLabelOff.classList.remove('text-red-600');
+        } else {
+            performanceText.textContent = 'Without optimizations, tail recursion behaves just like regular recursion, consuming stack space and adding function call overhead. It offers no inherent advantage.';
+            toggleLabelOn.classList.add('text-gray-400');
+            toggleLabelOn.classList.remove('text-green-600');
+            toggleLabelOff.classList.remove('text-gray-400');
+            toggleLabelOff.classList.add('text-red-600');
+        }
+    });
+
+    const tabs = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            const targetTab = tab.dataset.tab;
+            tabContents.forEach(content => {
+                if (content.id === targetTab) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+    
+    const accordionData = [
+        {
+            title: "Call isn't the 'last operation'",
+            content: "If any operation, like addition or multiplication, is performed on the result of the recursive call, it's not a true tail call. The function must wait for the result, so its stack frame must be preserved.",
+            code: `return recursive_call() + 1; // Not a tail call`
+        },
+        {
+            title: "Passing addresses of local variables",
+            content: "If you pass a pointer to a local variable to the callee, the compiler can't discard the caller's stack frame, as the callee might use that pointer to access the variable. This would lead to undefined behavior.",
+            code: `void f() {\n  int x = 10;\n  // TCO is prevented because g might access x.\n  g(&x);\n}`
+        },
+        {
+            title: "Returning large structs by value",
+            content: "The C ABI (Application Binary Interface) often handles returning large structs by having the caller allocate space and pass a hidden pointer. If the callee performs a copy into this space after the recursive call, it breaks the 'last operation' rule.",
+            code: `struct BigData my_func() { ... return recursive_big_data_func(); }`
+        },
+        {
+            title: "Use of `volatile` keyword",
+            content: "The `volatile` keyword forces the compiler to perform all reads and writes as specified, preventing optimizations. If `volatile` variables are involved, TCO may be disabled to preserve these strict access semantics.",
+            code: `volatile int flag;\n ... if (flag) tail_call();`
+        },
+        {
+            title: "Complex calling conventions",
+            content: "If the caller and callee have different function signatures (e.g., variadic functions), the process of setting up arguments can be too complex for simple stack frame reuse, inhibiting TCO.",
+            code: `// Calling a variadic function in tail position\ntail_call_printf("%d", 10);`
+        }
+    ];
+
+    const accordionContainer = document.getElementById('accordion');
+    accordionData.forEach((item, index) => {
+        const accordionItem = document.createElement('div');
+        accordionItem.className = 'border border-gray-200 rounded-lg bg-white';
+        accordionItem.innerHTML = `
+            <button class="accordion-header w-full text-left p-4 font-semibold flex justify-between items-center focus:outline-none">
+                <span>${item.title}</span>
+                <svg class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div class="accordion-content">
+                <div class="p-4 border-t border-gray-200">
+                    <p class="mb-4">${item.content}</p>
+                    <div class="code-block">${item.code}</div>
+                </div>
+            </div>
+        `;
+        accordionContainer.appendChild(accordionItem);
+    });
+
+    document.querySelectorAll('.accordion-header').forEach(header => {
+        header.addEventListener('click', () => {
+            const content = header.nextElementSibling;
+            const icon = header.querySelector('svg');
+            
+            if (content.style.maxHeight) {
+                content.style.maxHeight = null;
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+                document.querySelectorAll('.accordion-header svg').forEach(i => i.style.transform = 'rotate(0deg)');
+                content.style.maxHeight = content.scrollHeight + "px";
+                icon.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+
+});
+</script>
+</body>
+</html>

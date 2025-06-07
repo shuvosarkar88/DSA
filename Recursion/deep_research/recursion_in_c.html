@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide to Recursion in C</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Subtle Slate -->
+    <!-- Application Structure Plan: The application is designed as a single-page, scrollable journey with a sticky navigation bar for quick access to key topics. The structure progresses logically from foundational concepts to practical applications and advanced considerations. This thematic, non-linear structure allows both guided learning for novices and quick reference for experienced developers. Key sections include: 'How it Works' for an interactive call stack simulation, 'Core Examples' to visualize Factorial and the inefficiencies of naive Fibonacci, 'Algorithms' to animate sorting processes, 'Data Structures' to demonstrate tree and graph traversals, and 'Trade-offs' to compare recursion with iteration visually. This structure was chosen to make abstract concepts tangible and to prioritize user engagement and understanding over a rigid, report-like format. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Call Stack -> Goal: Explain function call mechanics -> Viz: Interactive HTML/CSS/JS stack animation -> Interaction: User-controlled stepping through calls -> Justification: Makes the abstract LIFO process concrete and visual. -> Library/Method: Vanilla JS, Tailwind CSS.
+        - Report Info: Fibonacci's redundant computations -> Goal: Show algorithmic inefficiency -> Viz: Bar chart of call counts -> Interaction: User inputs 'n', chart updates dynamically -> Justification: Quantifies the "exponential" problem, making it more impactful than text alone. -> Library/Method: Chart.js.
+        - Report Info: Merge Sort/Quicksort -> Goal: Visualize sorting process -> Viz: Animated array bars (divs) -> Interaction: User triggers sort, animation shows splits/partitions/merges -> Justification: Clarifies the complex steps of divide-and-conquer algorithms. -> Library/Method: Vanilla JS, Tailwind CSS.
+        - Report Info: Tree Traversals -> Goal: Demonstrate different traversal orders -> Viz: Animated highlighting of tree nodes -> Interaction: User selects traversal type (Pre/In/Postorder) -> Justification: Clearly distinguishes the three main DFS traversals on the same structure. -> Library/Method: Vanilla JS, Tailwind CSS.
+        - Report Info: Recursion vs. Iteration memory -> Goal: Compare memory usage -> Viz: Side-by-side bar chart -> Interaction: Static visualization -> Justification: Provides a simple, powerful visual metaphor for stack growth vs. constant memory. -> Library/Method: Chart.js.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #334155; /* slate-700 */
+        }
+        .nav-link {
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #4f46e5; /* indigo-600 */
+        }
+        .code-block {
+            background-color: #1e293b; /* slate-800 */
+            color: #e2e8f0; /* slate-200 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+            white-space: pre;
+            font-size: 0.875rem;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            background-color: #4f46e5; /* indigo-600 */
+            color: #ffffff;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #4338ca; /* indigo-700 */
+        }
+        .btn-secondary {
+            background-color: #64748b; /* slate-500 */
+        }
+        .btn-secondary:hover {
+            background-color: #475569; /* slate-600 */
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .stack-frame {
+            border: 2px solid #64748b;
+            transition: all 0.5s ease-in-out;
+            transform-origin: bottom;
+        }
+        .array-bar {
+            transition: all 0.5s ease;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .tree-node {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #38bdf8; /* sky-400 */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid #0ea5e9; /* sky-500 */
+            transition: all 0.5s ease;
+        }
+        .tree-line {
+            position: absolute;
+            background-color: #94a3b8; /* slate-400 */
+            height: 2px;
+            transform-origin: left center;
+            z-index: -1;
+        }
+        .graph-node {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #a78bfa; /* violet-400 */
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 2px solid #8b5cf6; /* violet-500 */
+            transition: background-color 0.5s ease;
+            z-index: 10;
+        }
+        .graph-line {
+             position: absolute;
+            background-color: #94a3b8; /* slate-400 */
+            height: 2px;
+            transform-origin: left center;
+            z-index: 5;
+            transition: background-color 0.5s ease;
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-600">Recursion in C</h1>
+            <div class="hidden md:flex space-x-6 text-sm font-medium">
+                <a href="#introduction" class="nav-link">Introduction</a>
+                <a href="#how-it-works" class="nav-link">How it Works</a>
+                <a href="#core-examples" class="nav-link">Core Examples</a>
+                <a href="#algorithms" class="nav-link">Algorithms</a>
+                <a href="#data-structures" class="nav-link">Data Structures</a>
+                <a href="#trade-offs" class="nav-link">Trade-offs</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+        <section id="introduction" class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">A Deep Dive into Recursion</h2>
+            <p class="max-w-3xl mx-auto text-lg text-slate-600">This interactive guide explores recursion, a powerful programming technique where a function calls itself to solve a problem. We'll break down how it works in C, from the call stack to its application in complex algorithms, helping you understand both its elegance and its limitations.</p>
+        </section>
+
+        <section id="how-it-works" class="mb-16">
+            <h2 class="text-2xl md:text-3xl font-bold mb-6 text-center">How It Works: The Call Stack</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-8">All function calls in C are managed by the call stack. When a function calls itself recursively, a new 'stack frame' is added for each call, holding its local variables and parameters. This visualization demonstrates the process for calculating `factorial(3)`. Use the controls to step through the calls and see how the stack builds up and unwinds.</p>
+            <div class="card md:grid md:grid-cols-2 gap-8 items-center">
+                <div class="mb-8 md:mb-0">
+                    <h3 class="font-bold text-lg mb-2">Factorial Function</h3>
+                    <div class="code-block">long long factorial(int n) {
+    if (n == 0) {
+        return 1; <span class="text-yellow-400">// Base Case</span>
+    } else {
+        return n * factorial(n - 1);
+    }
+}</div>
+                    <div class="mt-4 flex space-x-2">
+                        <button id="stack-start-btn" class="btn">Start</button>
+                        <button id="stack-step-btn" class="btn btn-secondary" disabled>Step</button>
+                        <button id="stack-reset-btn" class="btn btn-secondary" disabled>Reset</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-2 text-center">Call Stack Visualizer</h3>
+                    <div id="stack-visualizer" class="h-80 bg-slate-100 rounded-lg p-4 flex flex-col-reverse items-center justify-start relative overflow-hidden">
+                        <div class="text-slate-400">Stack is empty</div>
+                    </div>
+                     <p id="stack-status" class="text-center mt-2 font-medium text-slate-600 h-6"></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="core-examples" class="mb-16">
+            <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">Core Examples</h2>
+            <div class="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="text-xl font-bold mb-4">Inefficient Fibonacci</h3>
+                    <p class="text-slate-600 mb-4">The naive recursive Fibonacci algorithm is a classic example of "overlapping subproblems," where the same calculations are performed many times. This leads to exponential time complexity. Enter a number (e.g., 8-12) to see how many times each `fib(k)` is called. Notice how the number of calls for smaller numbers skyrockets.</p>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <label for="fib-input" class="font-medium">fib(</label>
+                        <input type="number" id="fib-input" value="8" min="1" max="15" class="w-16 p-1 border rounded">
+                        <label for="fib-input">):</label>
+                        <button id="fib-calc-btn" class="btn">Calculate</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="fib-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-xl font-bold mb-4">Factorial Calculation</h3>
+                    <p class="text-slate-600 mb-4">Factorial is a straightforward recursive problem. The factorial of `n` ($n!$) is the product of all positive integers up to `n`. The recursive definition, $n! = n \times (n-1)!$ with a base case of $0! = 1$, translates directly into clean, recursive C code. Enter a number to see the result.</p>
+                     <div class="code-block mb-4">long long factorial(int n) {
+    if (n == 0) return 1;
+    return n * factorial(n - 1);
+}</div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <label for="fact-input" class="font-medium">factorial(</label>
+                        <input type="number" id="fact-input" value="5" min="0" max="20" class="w-16 p-1 border rounded">
+                        <label for="fact-input">):</label>
+                         <button id="fact-calc-btn" class="btn">Calculate</button>
+                    </div>
+                    <p class="text-lg font-bold">Result: <span id="fact-result" class="text-indigo-600">120</span></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="algorithms" class="mb-16">
+            <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">Divide-and-Conquer Algorithms</h2>
+            <p class="max-w-3xl mx-auto text-center text-slate-600 mb-8">Recursion is the natural way to implement divide-and-conquer algorithms like Merge Sort and Quicksort. These algorithms work by recursively breaking a problem into smaller subproblems, solving them, and combining the results. Click "Sort" to visualize the process on a random array.</p>
+             <div class="card">
+                <div class="flex justify-center items-center mb-4 space-x-4">
+                     <h3 class="text-xl font-bold">Merge Sort Visualizer</h3>
+                     <div class="flex space-x-2">
+                         <button id="ms-sort-btn" class="btn">Sort</button>
+                         <button id="ms-reset-btn" class="btn btn-secondary">New Array</button>
+                    </div>
+                </div>
+                <div id="ms-visualizer-container" class="w-full h-80 bg-slate-100 rounded-lg p-4 flex items-end justify-center space-x-1"></div>
+                <p id="ms-status" class="text-center mt-2 font-medium text-slate-600 h-6"></p>
+             </div>
+        </section>
+
+        <section id="data-structures" class="mb-16">
+            <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">Recursive Data Structure Traversal</h2>
+            <div class="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="text-xl font-bold mb-4">Binary Tree Traversal (DFS)</h3>
+                    <p class="text-slate-600 mb-4">Because trees are defined recursively (a node has children that are roots of subtrees), recursive traversals are very elegant. The order of visiting a node versus its children defines the traversal type. Click a button to see the traversal path animated.</p>
+                    <div class="relative w-full h-72 mb-4" id="tree-container"></div>
+                     <div class="flex flex-wrap justify-center gap-2 mb-4">
+                        <button class="btn traversal-btn" data-type="preorder">Preorder</button>
+                        <button class="btn traversal-btn" data-type="inorder">Inorder</button>
+                        <button class="btn traversal-btn" data-type="postorder">Postorder</button>
+                        <button id="tree-reset-btn" class="btn btn-secondary">Reset</button>
+                    </div>
+                    <p class="font-mono text-center bg-slate-100 p-2 rounded">Output: <span id="traversal-output"></span></p>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-xl font-bold mb-4">Graph Traversal (DFS)</h3>
+                    <p class="text-slate-600 mb-4">Depth-First Search (DFS) on a graph also uses recursion. Unlike trees, graphs can have cycles, so we must track visited nodes to avoid infinite loops. Click "Start DFS" to see the algorithm explore the graph from node 0, highlighting visited nodes in green.</p>
+                     <div class="relative w-full h-72 mb-4" id="graph-container"></div>
+                     <div class="flex justify-center gap-2 mb-4">
+                        <button id="graph-dfs-btn" class="btn">Start DFS from Node 0</button>
+                        <button id="graph-reset-btn" class="btn btn-secondary">Reset</button>
+                    </div>
+                     <p class="font-mono text-center bg-slate-100 p-2 rounded">Visited Order: <span id="graph-output"></span></p>
+                </div>
+            </div>
+        </section>
+
+        <section id="trade-offs" class="mb-16">
+             <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center">Trade-offs: Recursion vs. Iteration</h2>
+             <p class="max-w-3xl mx-auto text-center text-slate-600 mb-8">While elegant, recursion has downsides. Each function call uses memory on the call stack, which can lead to a "stack overflow" error with deep recursion. Iterative solutions, while sometimes more complex to write, use a fixed amount of memory and can be faster due to avoiding function call overhead.</p>
+            <div class="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="card">
+                    <h3 class="text-xl font-bold mb-4">Code Comparison: Factorial</h3>
+                     <p class="text-slate-600 mb-4">The iterative factorial uses a simple loop, avoiding stack growth and function call overhead, making it more efficient for large numbers.</p>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        <div>
+                            <h4 class="font-semibold mb-2">Recursive</h4>
+                            <div class="code-block text-sm">long long fact(int n) {
+  if(n==0) return 1;
+  return n * fact(n-1);
+}</div>
+                        </div>
+                        <div>
+                             <h4 class="font-semibold mb-2">Iterative</h4>
+                            <div class="code-block text-sm">long long fact(int n) {
+  long long res = 1;
+  for(int i=2; i<=n; i++)
+    res *= i;
+  return res;
+}</div>
+                        </div>
+                    </div>
+                </div>
+
+                 <div class="card">
+                    <h3 class="text-xl font-bold mb-4">Conceptual Memory Usage</h3>
+                    <p class="text-slate-600 mb-4">This chart visualizes the key difference in memory consumption. Recursive solutions can consume memory proportional to the depth of recursion, while iterative solutions often use a constant amount of memory, regardless of input size.</p>
+                    <div class="chart-container">
+                        <canvas id="memory-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // SECTION: Active Nav Link Scrolling
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-link');
+
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px',
+                threshold: 0.5
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href').substring(1) === entry.target.id);
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+            // SECTION: Call Stack Visualizer
+            const stackViz = document.getElementById('stack-visualizer');
+            const stackStatus = document.getElementById('stack-status');
+            const startBtn = document.getElementById('stack-start-btn');
+            const stepBtn = document.getElementById('stack-step-btn');
+            const resetBtn = document.getElementById('stack-reset-btn');
+
+            let stackState = {
+                calls: [],
+                step: 0,
+                maxSteps: 7, 
+                isComplete: false
+            };
+
+            const stackSteps = [
+                { action: 'call', n: 3, text: 'Calling factorial(3)' },
+                { action: 'call', n: 2, text: 'Calling factorial(2) from factorial(3)' },
+                { action: 'call', n: 1, text: 'Calling factorial(1) from factorial(2)' },
+                { action: 'call', n: 0, text: 'Calling factorial(0) from factorial(1)' },
+                { action: 'return', n: 0, val: 1, text: 'Base case: factorial(0) returns 1' },
+                { action: 'return', n: 1, val: 1, text: 'factorial(1) returns 1 * 1 = 1' },
+                { action: 'return', n: 2, val: 2, text: 'factorial(2) returns 2 * 1 = 2' },
+                { action: 'return', n: 3, val: 6, text: 'factorial(3) returns 3 * 2 = 6. Done!' },
+            ];
+            
+            function renderStack() {
+                stackViz.innerHTML = '';
+                if (stackState.calls.length === 0 && !stackState.isComplete) {
+                     stackViz.innerHTML = '<div class="text-slate-400">Stack is empty</div>';
+                     return;
+                }
+                
+                stackState.calls.forEach((call, index) => {
+                    const frame = document.createElement('div');
+                    frame.className = 'stack-frame w-4/5 max-w-xs p-2 mb-2 bg-white rounded-md text-center shadow';
+                    frame.innerHTML = `<span class="font-bold">factorial(n=${call.n})</span>`;
+                    frame.style.transform = `scale(${1 - index * 0.05})`;
+                    frame.style.opacity = `${1 - index * 0.1}`;
+                    stackViz.appendChild(frame);
+                });
+                 if (stackState.isComplete) {
+                     stackViz.innerHTML = `<div class="text-green-600 font-bold text-lg">Result: 6</div>`;
+                 }
+            }
+            
+            function updateStackStep() {
+                if (stackState.step >= stackSteps.length) {
+                    stackStatus.textContent = 'Completed!';
+                    stepBtn.disabled = true;
+                    stackState.isComplete = true;
+                    renderStack();
+                    return;
+                }
+                const currentStep = stackSteps[stackState.step];
+                stackStatus.textContent = currentStep.text;
+                if (currentStep.action === 'call') {
+                    stackState.calls.unshift({ n: currentStep.n });
+                } else {
+                    stackState.calls.shift();
+                }
+                stackState.step++;
+                renderStack();
+            }
+
+            startBtn.addEventListener('click', () => {
+                startBtn.disabled = true;
+                stepBtn.disabled = false;
+                resetBtn.disabled = false;
+                updateStackStep();
+            });
+
+            stepBtn.addEventListener('click', updateStackStep);
+
+            resetBtn.addEventListener('click', () => {
+                stackState = { calls: [], step: 0, maxSteps: 7, isComplete: false };
+                renderStack();
+                stackStatus.textContent = '';
+                startBtn.disabled = false;
+                stepBtn.disabled = true;
+                resetBtn.disabled = true;
+            });
+            
+            // SECTION: Factorial Calculator
+            const factInput = document.getElementById('fact-input');
+            const factCalcBtn = document.getElementById('fact-calc-btn');
+            const factResult = document.getElementById('fact-result');
+
+            function recursiveFactorial(n) {
+                if (n > 20) return "Too large"; // Prevent overflow for display
+                if (n === 0) return 1;
+                return n * recursiveFactorial(n-1);
+            }
+            factCalcBtn.addEventListener('click', () => {
+                const n = parseInt(factInput.value);
+                if (isNaN(n) || n < 0) {
+                    factResult.textContent = "Invalid input";
+                    return;
+                }
+                const result = recursiveFactorial(n);
+                factResult.textContent = Number(result).toExponential(2);
+            });
+            
+            // SECTION: Fibonacci Chart
+            const fibInput = document.getElementById('fib-input');
+            const fibCalcBtn = document.getElementById('fib-calc-btn');
+            let fibChartInstance;
+
+            function calculateFibCalls(n) {
+                const calls = new Array(n + 1).fill(0);
+                function fib(k) {
+                    calls[k]++;
+                    if (k <= 1) return k;
+                    return fib(k - 1) + fib(k - 2);
+                }
+                fib(n);
+                return calls;
+            }
+
+            function renderFibChart() {
+                const n = parseInt(fibInput.value);
+                if (isNaN(n) || n < 1 || n > 15) {
+                    alert("Please enter a number between 1 and 15 for a clear visualization.");
+                    return;
+                }
+                const callCounts = calculateFibCalls(n);
+                const ctx = document.getElementById('fib-chart').getContext('2d');
+                const labels = Array.from({ length: n + 1 }, (_, i) => `fib(${i})`);
+
+                if (fibChartInstance) {
+                    fibChartInstance.destroy();
+                }
+
+                fibChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Number of Calls',
+                            data: callCounts,
+                            backgroundColor: '#818cf8',
+                            borderColor: '#4f46e5',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Call Count' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            title: { display: true, text: `Redundant calls for fib(${n})` }
+                        }
+                    }
+                });
+            }
+            fibCalcBtn.addEventListener('click', renderFibChart);
+            renderFibChart();
+
+            // SECTION: Merge Sort Visualizer
+            const msContainer = document.getElementById('ms-visualizer-container');
+            const msSortBtn = document.getElementById('ms-sort-btn');
+            const msResetBtn = document.getElementById('ms-reset-btn');
+            const msStatus = document.getElementById('ms-status');
+            let msArray = [];
+            const msDelay = 200;
+
+            function createMsBars() {
+                msContainer.innerHTML = '';
+                msArray = Array.from({length: 20}, () => Math.floor(Math.random() * 95) + 5);
+                msArray.forEach(val => {
+                    const bar = document.createElement('div');
+                    bar.style.height = `${val}%`;
+                    bar.style.backgroundColor = '#a78bfa'; // violet-400
+                    bar.classList.add('array-bar', 'w-1/20');
+                    msContainer.appendChild(bar);
+                });
+            }
+
+            function updateMsBars(arrSlice, startIndex) {
+                const bars = msContainer.children;
+                for (let i = 0; i < arrSlice.length; i++) {
+                    const bar = bars[startIndex + i];
+                    if (bar) {
+                        bar.style.height = `${arrSlice[i]}%`;
+                    }
+                }
+            }
+            
+            async function merge(arr, l, m, r) {
+                let n1 = m - l + 1;
+                let n2 = r - m;
+                let L = new Array(n1);
+                let R = new Array(n2);
+
+                for (let i = 0; i < n1; i++) L[i] = arr[l + i];
+                for (let j = 0; j < n2; j++) R[j] = arr[m + 1 + j];
+
+                let i = 0, j = 0, k = l;
+                while (i < n1 && j < n2) {
+                    if (L[i] <= R[j]) {
+                        arr[k] = L[i];
+                        i++;
+                    } else {
+                        arr[k] = R[j];
+                        j++;
+                    }
+                    updateMsBars([arr[k]], k);
+                    await new Promise(resolve => setTimeout(resolve, msDelay));
+                    k++;
+                }
+
+                while (i < n1) {
+                    arr[k] = L[i];
+                    updateMsBars([arr[k]], k);
+                    await new Promise(resolve => setTimeout(resolve, msDelay));
+                    i++; k++;
+                }
+                while (j < n2) {
+                    arr[k] = R[j];
+                    updateMsBars([arr[k]], k);
+                    await new Promise(resolve => setTimeout(resolve, msDelay));
+                    j++; k++;
+                }
+            }
+
+            async function mergeSort(arr, l, r) {
+                if(l >= r) return;
+                let m = l + Math.floor((r - l) / 2);
+                msStatus.textContent = `Splitting [${l}-${r}]`;
+                await new Promise(resolve => setTimeout(resolve, msDelay));
+
+                await mergeSort(arr, l, m);
+                await mergeSort(arr, m + 1, r);
+                
+                msStatus.textContent = `Merging [${l}-${m}] and [${m+1}-${r}]`;
+                await merge(arr, l, m, r);
+            }
+
+            msSortBtn.addEventListener('click', async () => {
+                msSortBtn.disabled = true;
+                msResetBtn.disabled = true;
+                await mergeSort(msArray, 0, msArray.length - 1);
+                msStatus.textContent = 'Sorting Complete!';
+                msSortBtn.disabled = false;
+                msResetBtn.disabled = false;
+            });
+            msResetBtn.addEventListener('click', () => {
+                createMsBars();
+                msStatus.textContent = '';
+            });
+
+            createMsBars();
+
+
+            // SECTION: Tree Traversal
+            const treeContainer = document.getElementById('tree-container');
+            const traversalOutput = document.getElementById('traversal-output');
+            const traversalBtns = document.querySelectorAll('.traversal-btn');
+            const treeResetBtn = document.getElementById('tree-reset-btn');
+
+            const treeData = {
+                val: 1, x: 50, y: 10,
+                children: [
+                    { val: 2, x: 25, y: 35, children: [
+                        { val: 4, x: 10, y: 60, children: [] },
+                        { val: 5, x: 40, y: 60, children: [] }
+                    ]},
+                    { val: 3, x: 75, y: 35, children: [
+                         { val: 6, x: 60, y: 60, children: [] },
+                         { val: 7, x: 90, y: 60, children: [] }
+                    ]}
+                ]
+            };
+            const nodeElements = {};
+            
+            function drawTree(node, parent) {
+                const nodeEl = document.createElement('div');
+                nodeEl.className = 'tree-node';
+                nodeEl.textContent = node.val;
+                nodeEl.style.left = `${node.x}%`;
+                nodeEl.style.top = `${node.y}%`;
+                nodeEl.style.transform = 'translate(-50%, -50%)';
+                treeContainer.appendChild(nodeEl);
+                nodeElements[node.val] = nodeEl;
+                
+                if (parent) {
+                    const line = document.createElement('div');
+                    line.className = 'tree-line';
+                    const angle = Math.atan2(node.y - parent.y, (node.x - parent.x) * (treeContainer.clientWidth/treeContainer.clientHeight)) * 180 / Math.PI;
+                    const length = Math.sqrt(Math.pow(node.x - parent.x, 2) + Math.pow((node.y - parent.y)*(treeContainer.clientHeight/treeContainer.clientWidth), 2));
+                    line.style.width = `${length}%`;
+                    line.style.left = `${parent.x}%`;
+                    line.style.top = `${parent.y}%`;
+                    line.style.transform = `rotate(${angle}deg)`;
+                    treeContainer.appendChild(line);
+                }
+                
+                node.children.forEach(child => drawTree(child, node));
+            }
+            
+            async function animateTraversal(order) {
+                traversalBtns.forEach(b => b.disabled = true);
+                treeResetBtn.disabled = true;
+                traversalOutput.textContent = '';
+                Object.values(nodeElements).forEach(el => el.style.backgroundColor = '#38bdf8'); // sky-400
+                
+                const delay = 500;
+                for(let i=0; i < order.length; i++) {
+                    const val = order[i];
+                    nodeElements[val].style.backgroundColor = '#10b981'; // emerald-500
+                    traversalOutput.textContent += ` ${val}`;
+                    await new Promise(r => setTimeout(r, delay));
+                }
+                traversalBtns.forEach(b => b.disabled = false);
+                treeResetBtn.disabled = false;
+            }
+
+            traversalBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const type = e.target.dataset.type;
+                    let order = [];
+                    if (type === 'preorder') { // 1 2 4 5 3 6 7
+                        function pre(node) { if(node) { order.push(node.val); pre(node.children[0]); pre(node.children[1]); } }
+                        pre(treeData);
+                    } else if (type === 'inorder') { // 4 2 5 1 6 3 7
+                         function ino(node) { if(node) { ino(node.children[0]); order.push(node.val); ino(node.children[1]); } }
+                         ino(treeData);
+                    } else if (type === 'postorder') { // 4 5 2 6 7 3 1
+                         function post(node) { if(node) { post(node.children[0]); post(node.children[1]); order.push(node.val); } }
+                         post(treeData);
+                    }
+                    animateTraversal(order);
+                });
+            });
+
+            treeResetBtn.addEventListener('click', () => {
+                 traversalOutput.textContent = '';
+                 Object.values(nodeElements).forEach(el => el.style.backgroundColor = '#38bdf8'); // sky-400
+            });
+            drawTree(treeData, null);
+
+
+            // SECTION: Graph Traversal
+            const graphContainer = document.getElementById('graph-container');
+            const graphDfsBtn = document.getElementById('graph-dfs-btn');
+            const graphResetBtn = document.getElementById('graph-reset-btn');
+            const graphOutput = document.getElementById('graph-output');
+            
+            const graphData = {
+                nodes: [
+                    { id: 0, x: 20, y: 50 }, { id: 1, x: 50, y: 20 },
+                    { id: 2, x: 50, y: 80 }, { id: 3, x: 80, y: 20 },
+                    { id: 4, x: 80, y: 80 }
+                ],
+                adj: [ [1,2], [0,2,3], [0,1,4], [1], [2] ]
+            };
+            const graphNodeElements = {};
+            const graphLineElements = {};
+
+            function drawGraph() {
+                 graphData.nodes.forEach(node => {
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = 'graph-node';
+                    nodeEl.textContent = node.id;
+                    nodeEl.style.left = `${node.x}%`;
+                    nodeEl.style.top = `${node.y}%`;
+                    nodeEl.style.transform = 'translate(-50%, -50%)';
+                    graphContainer.appendChild(nodeEl);
+                    graphNodeElements[node.id] = nodeEl;
+                });
+                const drawnEdges = new Set();
+                graphData.nodes.forEach(node => {
+                    graphData.adj[node.id].forEach(neighborId => {
+                        const edge = [node.id, neighborId].sort().join('-');
+                        if(drawnEdges.has(edge)) return;
+                        drawnEdges.add(edge);
+                        
+                        const neighbor = graphData.nodes.find(n => n.id === neighborId);
+                        const line = document.createElement('div');
+                        line.className = 'graph-line';
+                        const angle = Math.atan2(neighbor.y - node.y, (neighbor.x - node.x)) * 180 / Math.PI;
+                        const length = Math.hypot((neighbor.x - node.x), (neighbor.y - node.y)) * (graphContainer.clientWidth/100) * 0.9;
+                        line.style.width = `${length}px`;
+                        line.style.left = `${node.x}%`;
+                        line.style.top = `${node.y}%`;
+                        line.style.transform = `rotate(${angle}deg)`;
+                        graphContainer.appendChild(line);
+                        graphLineElements[edge] = line;
+                    });
+                });
+            }
+            
+            async function dfs(startNode) {
+                graphDfsBtn.disabled = true;
+                graphResetBtn.disabled = true;
+                graphResetBtn.click();
+                
+                let visited = new Array(graphData.nodes.length).fill(false);
+                let order = [];
+                const stack = [startNode];
+                
+                while(stack.length > 0) {
+                    const u = stack.pop();
+                    if (!visited[u]) {
+                        visited[u] = true;
+                        order.push(u);
+                        graphNodeElements[u].style.backgroundColor = '#10b981'; // emerald-500
+                        graphOutput.textContent += ` ${u}`;
+                        
+                        await new Promise(r => setTimeout(r, 600));
+
+                        for (let i = graphData.adj[u].length - 1; i >= 0; i--) {
+                            const v = graphData.adj[u][i];
+                            if (!visited[v]) {
+                                stack.push(v);
+                                const edge = [u,v].sort().join('-');
+                                if(graphLineElements[edge]) {
+                                     graphLineElements[edge].style.backgroundColor = '#10b981';
+                                }
+                            }
+                        }
+                    }
+                }
+                graphDfsBtn.disabled = false;
+                graphResetBtn.disabled = false;
+            }
+
+            graphDfsBtn.addEventListener('click', () => dfs(0));
+            graphResetBtn.addEventListener('click', () => {
+                graphOutput.textContent = '';
+                Object.values(graphNodeElements).forEach(el => el.style.backgroundColor = '#a78bfa'); // violet-400
+                Object.values(graphLineElements).forEach(el => el.style.backgroundColor = '#94a3b8'); // slate-400
+            });
+            drawGraph();
+
+            // SECTION: Memory Chart
+            const memCtx = document.getElementById('memory-chart').getContext('2d');
+            new Chart(memCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Recursive', 'Iterative'],
+                    datasets: [{
+                        label: 'Peak Memory Usage',
+                        data: [85, 20],
+                        backgroundColor: ['#f472b6', '#60a5fa'], // pink-400, blue-400
+                        borderColor: ['#ec4899', '#3b82f6'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                         y: { beginAtZero: true, ticks: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Conceptual Peak Memory for Deep Call vs. Loop' }
+                    }
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic: How Compilers Optimize C Recursion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Brilliant Blues & Oranges -->
+    <!-- Application Structure Plan: The infographic follows a narrative flow designed to educate a developer. It starts with a high-level visual "hook" contrasting the problem (stack overflow) with the solution (TCO). It then drills into the "how" with a side-by-side code example of the essential accumulator pattern. Next, it provides market context by comparing the major compilers (GCC, Clang, MSVC) using a radar chart. It then demystifies the core TCO mechanism with a simple HTML/CSS flowchart. A bar chart clarifies the key difference between C and functional languages. The narrative concludes with actionable best practices presented in a clean, digestible card format. This structure was chosen to build understanding layer by layer, from the "what" to the "how" and finally to the "what to do." -->
+    <!-- Visualization & Content Choices: 1. Stack Growth (Inform): Custom HTML/CSS diagram to visually represent stack frames piling up vs. a single, reused frame for TCO. More impactful than a generic chart. 2. Accumulator Pattern (Compare): Side-by-side code blocks are the most direct way to show the transformation from non-tail to tail-recursive code. 3. Compiler Comparison (Compare): A Chart.js Radar Chart effectively compares multiple entities (compilers) across multiple quantitative/qualitative axes (TCO features, inlining control). 4. TCO Process (Organize): An HTML/CSS flowchart breaks down the compiler's decision-making process into simple, readable steps. 5. Language Divide (Compare): A Chart.js Bar Chart provides a stark visual contrast of a single key concept (TCO guarantee), making the difference immediately obvious. All choices strictly adhere to the NO SVG/NO Mermaid JS constraint. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+        }
+        .font-fira {
+            font-family: 'Fira Code', monospace;
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #0A9396, #EE9B00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+                max-height: 500px;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-700">
+
+    <div class="container mx-auto px-4 py-8 md:py-12">
+
+        <header class="text-center mb-16">
+            <h1 class="text-4xl md:text-6xl font-black text-gray-800 tracking-tight">The <span class="gradient-text">Invisible Loop</span></h1>
+            <p class="mt-4 text-lg md:text-xl max-w-3xl mx-auto text-gray-600">A Visual Guide to How C Compilers Optimize Recursive Functions</p>
+        </header>
+
+        <section class="mb-20">
+            <div class="text-center">
+                <h2 class="text-3xl font-bold text-gray-800">The Core Problem: Stack Overflow</h2>
+                <p class="mt-2 max-w-2xl mx-auto">Each recursive call normally creates a new "stack frame." Too many calls, and the stack runs out of space, crashing the program. Tail Call Optimization (TCO) is the solution.</p>
+            </div>
+
+            <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+                <div class="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
+                    <h3 class="font-bold text-xl text-center text-[#AE2012]">Standard Recursion: The Stack Pile-up</h3>
+                    <p class="text-center text-sm text-gray-500 mt-1 mb-6">Stack space complexity: O(n)</p>
+                    <div class="flex flex-col-reverse items-center space-y-reverse space-y-2">
+                        <div class="w-full h-12 bg-red-100 border-2 border-red-300 rounded-md flex items-center justify-center font-fira text-sm shadow-sm">frame: func(1)</div>
+                        <div class="w-11/12 h-12 bg-red-100 border-2 border-red-300 rounded-md flex items-center justify-center font-fira text-sm shadow-sm">frame: func(2)</div>
+                        <div class="w-10/12 h-12 bg-red-100 border-2 border-red-300 rounded-md flex items-center justify-center font-fira text-sm shadow-sm">frame: func(3)</div>
+                        <div class="w-9/12 text-center text-gray-400">... and so on ...</div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-lg p-6 border border-gray-200">
+                    <h3 class="font-bold text-xl text-center text-[#0A9396]">With TCO: The Constant Frame</h3>
+                    <p class="text-center text-sm text-gray-500 mt-1 mb-6">Stack space complexity: O(1)</p>
+                    <div class="relative flex flex-col items-center justify-center h-[14.5rem]">
+                        <div class="w-full h-16 bg-teal-100 border-2 border-teal-300 rounded-md flex items-center justify-center font-fira text-lg shadow-sm">A Single, Reused Frame</div>
+                        <div class="absolute right-0 md:-right-8 top-1/2 -translate-y-1/2 text-6xl text-teal-400 transform rotate-90">&#x21BA;</div>
+                        <p class="mt-4 text-gray-600 font-medium">The compiler turns the recursion into a loop.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-20 bg-white rounded-lg shadow-lg p-6 md:p-8 border border-gray-200">
+            <h2 class="text-3xl font-bold text-gray-800 text-center">The Path to Optimization: The Accumulator Pattern</h2>
+            <p class="mt-2 text-center max-w-3xl mx-auto">To enable TCO, the recursive call must be the *absolute last action*. This is achieved by passing the intermediate result down as an "accumulator" parameter.</p>
+            <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold text-lg">❌ Before: Non-Tail-Recursive</h3>
+                    <p class="text-sm text-gray-500 mb-2">The multiplication `n * ...` happens *after* the recursive call returns, blocking TCO.</p>
+                    <pre class="bg-gray-800 text-white p-4 rounded-md font-fira text-sm"><code>int factorial(int n) {
+  if (n <= 1) return 1;
+  return <span class="text-yellow-400">n *</span> factorial(n - 1);
+}</code></pre>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-lg">✅ After: Tail-Recursive</h3>
+                    <p class="text-sm text-gray-500 mb-2">The multiplication `n * acc` happens *before* the call. The result is passed down.</p>
+                     <pre class="bg-gray-800 text-white p-4 rounded-md font-fira text-sm"><code>int fact_helper(int n, int acc) {
+  if (n <= 1) return acc;
+  return fact_helper(n-1, <span class="text-yellow-400">n*acc</span>);
+}</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold text-gray-800 text-center">Compiler Battleground: TCO Features</h2>
+            <p class="mt-2 text-center max-w-2xl mx-auto">Different compilers offer varying levels of support and control for recursive optimizations. GCC and Clang lead with guaranteed TCO via attributes, while MSVC provides more granular control over inlining.</p>
+            <div class="mt-8 bg-white rounded-lg shadow-lg p-6 md:p-8 border border-gray-200">
+                <div class="chart-container">
+                    <canvas id="compilerRadarChart"></canvas>
+                </div>
+                <p class="text-center text-sm text-gray-500 mt-4">A comparison of key optimization capabilities for recursive functions. Higher scores indicate more robust or explicit features.</p>
+            </div>
+        </section>
+
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold text-gray-800 text-center">From `call` to `jmp`: How TCO Works</h2>
+            <p class="mt-2 text-center max-w-2xl mx-auto">Conceptually, the compiler transforms a tail-recursive C function into an efficient loop, replacing the expensive `call` instruction with a simple `jmp`.</p>
+            <div class="mt-10 max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6 md:p-8 border border-gray-200">
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <div class="bg-[#0A9396] text-white rounded-full h-10 w-10 flex items-center justify-center font-bold text-lg">1</div>
+                        <p class="ml-4 font-semibold">Compiler sees a tail-recursive function at `-O2`.</p>
+                    </div>
+                    <div class="h-8 ml-5 border-l-2 border-dashed border-gray-300"></div>
+                    <div class="flex items-center">
+                        <div class="bg-[#94D2BD] text-gray-800 rounded-full h-10 w-10 flex items-center justify-center font-bold text-lg">2</div>
+                        <p class="ml-4 font-semibold">It rewrites function arguments in place on the stack or in registers.</p>
+                    </div>
+                    <div class="h-8 ml-5 border-l-2 border-dashed border-gray-300"></div>
+                    <div class="flex items-center">
+                        <div class="bg-[#E9D8A6] text-gray-800 rounded-full h-10 w-10 flex items-center justify-center font-bold text-lg">3</div>
+                        <p class="ml-4 font-semibold">Replaces the `call` instruction with a `jmp` to the function's start.</p>
+                    </div>
+                     <div class="h-8 ml-5 border-l-2 border-dashed border-gray-300"></div>
+                     <div class="flex items-center">
+                        <div class="bg-[#EE9B00] text-white rounded-full h-10 w-10 flex items-center justify-center font-bold text-lg">4</div>
+                        <p class="ml-4 font-semibold">Result: An efficient loop with constant O(1) stack space.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="mb-20">
+            <h2 class="text-3xl font-bold text-gray-800 text-center">The Great Divide: C vs. Functional Languages</h2>
+            <p class="mt-2 text-center max-w-2xl mx-auto">In many functional languages, TCO is a *guaranteed* language feature because recursion is the primary way to loop. In C, it's an optional (but powerful) optimization.</p>
+            <div class="mt-8 bg-white rounded-lg shadow-lg p-6 md:p-8 border border-gray-200">
+                <div class="chart-container">
+                    <canvas id="languageBarChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section>
+             <h2 class="text-3xl font-bold text-gray-800 text-center">Actionable Best Practices</h2>
+             <p class="mt-2 text-center max-w-2xl mx-auto">How to write C code that compilers can easily optimize.</p>
+             <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md border hover:shadow-xl transition-shadow">
+                    <div class="text-3xl text-[#0A9396]">01</div>
+                    <h3 class="font-bold mt-2">Use the Accumulator Pattern</h3>
+                    <p class="text-sm mt-1 text-gray-600">Rewrite functions to be truly tail-recursive. This is the most critical step.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow-md border hover:shadow-xl transition-shadow">
+                    <div class="text-3xl text-[#0A9396]">02</div>
+                    <h3 class="font-bold mt-2">Compile with `-O2` or `/O2`</h3>
+                    <p class="text-sm mt-1 text-gray-600">Ensure high optimization levels are enabled for release builds to activate TCO.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border hover:shadow-xl transition-shadow">
+                    <div class="text-3xl text-[#0A9396]">03</div>
+                    <h3 class="font-bold mt-2">Use `musttail` for Guarantees</h3>
+                    <p class="text-sm mt-1 text-gray-600">On GCC/Clang, use `__attribute__((musttail))` for critical code to ensure TCO or fail compilation.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border hover:shadow-xl transition-shadow">
+                    <div class="text-3xl text-[#EE9B00]">04</div>
+                    <h3 class="font-bold mt-2">Verify with Assembly</h3>
+                    <p class="text-sm mt-1 text-gray-600">Don't guess. Check the assembly for a `jmp` instead of a `call`. Use tools like Compiler Explorer.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border hover:shadow-xl transition-shadow">
+                    <div class="text-3xl text-[#EE9B00]">05</div>
+                    <h3 class="font-bold mt-2">Consider Iteration</h3>
+                    <p class="text-sm mt-1 text-gray-600">If TCO is uncertain (e.g., MSVC) and stack depth is a risk, a manual loop is the most robust choice.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border hover:shadow-xl transition-shadow">
+                    <div class="text-3xl text-[#EE9B00]">06</div>
+                    <h3 class="font-bold mt-2">Profile Your Code</h3>
+                    <p class="text-sm mt-1 text-gray-600">Measure performance to validate that your optimizations have the intended effect.</p>
+                </div>
+             </div>
+        </section>
+
+    </div>
+
+    <script>
+        const wrapLabel = (label) => {
+            const maxLen = 16;
+            if (label.length <= maxLen) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + ' ' + word).length > maxLen && currentLine.length > 0) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    if (currentLine.length > 0) {
+                        currentLine += ' ' + word;
+                    } else {
+                        currentLine = word;
+                    }
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        };
+
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+              return label.join(' ');
+            }
+            return label;
+        };
+
+        const radarChartCtx = document.getElementById('compilerRadarChart').getContext('2d');
+        new Chart(radarChartCtx, {
+            type: 'radar',
+            data: {
+                labels: [
+                    'Implicit TCO', 
+                    wrapLabel('Guaranteed TCO (via musttail)'), 
+                    'Advanced Inlining Control', 
+                    'Non-TR Optimization'
+                ],
+                datasets: [{
+                    label: 'GCC',
+                    data: [8, 9, 6, 9],
+                    backgroundColor: 'rgba(10, 147, 150, 0.2)',
+                    borderColor: '#0A9396',
+                    pointBackgroundColor: '#0A9396',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#0A9396'
+                }, {
+                    label: 'Clang',
+                    data: [8, 9, 7, 9],
+                    backgroundColor: 'rgba(238, 155, 0, 0.2)',
+                    borderColor: '#EE9B00',
+                    pointBackgroundColor: '#EE9B00',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#EE9B00'
+                }, {
+                    label: 'MSVC',
+                    data: [7, 0, 8, 5],
+                    backgroundColor: 'rgba(174, 32, 18, 0.2)',
+                    borderColor: '#AE2012',
+                    pointBackgroundColor: '#AE2012',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#AE2012'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: 'rgba(0, 0, 0, 0.1)' },
+                        grid: { color: 'rgba(0, 0, 0, 0.1)' },
+                        pointLabels: { font: { size: 12 } },
+                        suggestedMin: 0,
+                        suggestedMax: 10
+                    }
+                },
+                plugins: {
+                    tooltip: { callbacks: { title: tooltipTitleCallback } },
+                    legend: { position: 'top' }
+                }
+            }
+        });
+
+        const barChartCtx = document.getElementById('languageBarChart').getContext('2d');
+        new Chart(barChartCtx, {
+            type: 'bar',
+            data: {
+                labels: [wrapLabel('Functional Languages (e.g., Scheme, OCaml)'), 'C / C++'],
+                datasets: [{
+                    label: 'TCO Guarantee Level',
+                    data: [100, 15],
+                    backgroundColor: ['#0A9396', '#CA6702'],
+                    borderColor: ['#005F73', '#9B2226'],
+                    borderWidth: 2,
+                    barPercentage: 0.5
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) { return (value === 100 ? 'Mandated' : (value === 0 ? 'None' : '')); }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback,
+                            label: function(context) {
+                                if (context.raw === 100) return 'TCO is required by language spec.';
+                                return 'TCO is an optional optimization.';
+                            }
+                        }
+                    },
+                    legend: { display: false }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

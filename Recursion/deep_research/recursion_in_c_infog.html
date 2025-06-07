@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic: The Power and Perils of Recursion in C</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Brilliant Blues & Vibrant Accents -->
+    <!-- Application Structure Plan: The infographic follows a single-page, top-to-bottom narrative structure to guide the user through the complex topic of recursion. It starts with a high-level hook (What is Recursion?), moves to core mechanics (The Call Stack), showcases practical applications (Algorithms like Fibonacci and Merge Sort), presents a direct comparison (Recursion vs. Iteration using a SWOT-like layout), visualizes a key use case (Tree Traversal), and concludes with a summary. This structure was chosen to build knowledge progressively, making abstract concepts like the call stack and algorithmic complexity tangible through visualization before tackling more nuanced topics. The goal is a learning journey, not just a data dump. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Stack Overflow Limit -> Goal: Inform -> Viz: Single Big Number -> Justification: A large, impactful number provides a concrete sense of limitation. -> Method: HTML/CSS.
+        - Report Info: Call Stack LIFO process -> Goal: Organize -> Viz: HTML/CSS Flow Diagram -> Justification: Visually shows the push/pop mechanism which is central to recursion. -> Method: HTML/CSS with Tailwind.
+        - Report Info: Fibonacci's redundant computations -> Goal: Compare/Change -> Viz: Line Chart ($O(2^n)$ vs $O(n)$) -> Justification: A line chart dramatically illustrates the consequence of exponential complexity. -> Library: Chart.js/Canvas.
+        - Report Info: Merge Sort Algorithm -> Goal: Organize -> Viz: Donut Chart (Time Breakdown) & HTML/CSS Flowchart -> Justification: The donut chart shows the 'merge' step is key, and the flowchart explains the process. -> Library: Chart.js/Canvas & HTML/CSS.
+        - Report Info: Recursion Advantages/Disadvantages -> Goal: Compare/Organize -> Viz: SWOT-style HTML Grid -> Justification: A familiar business framework to clearly categorize pros and cons. -> Method: HTML/CSS.
+        - Report Info: Tree Traversals (Inorder) -> Goal: Organize -> Viz: Interactive HTML/CSS Diagram -> Justification: An interactive visualization is far more instructive for showing a process like traversal than a static image. -> Method: HTML/CSS/JS.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+            margin-bottom: 2rem;
+        }
+        .swot-item {
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <header class="text-center my-8 md:my-16">
+            <h1 class="text-4xl md:text-6xl font-extrabold text-[#003f5c] mb-4">The Recursive Riddle</h1>
+            <p class="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">An infographic breaking down recursion in C: a powerful technique for solving complex problems by breaking them into smaller, self-similar pieces.</p>
+        </header>
+
+        <section id="core-mechanics" class="card">
+            <h2 class="text-2xl font-bold text-center mb-6 text-[#2f4b7c]">The Engine Room: The Call Stack</h2>
+            <p class="text-center text-gray-600 mb-8">Every time a function calls itself, it adds a layer (a "stack frame") to the call stack. This continues until a "base case" is hit, at which point the stack unwinds. But beware, the stack has a finite size!</p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="text-center">
+                    <div class="text-6xl md:text-8xl font-extrabold text-[#f95d6a]">~8MB</div>
+                    <div class="text-lg font-semibold text-gray-700 mt-2">Typical Stack Limit on Linux</div>
+                    <p class="text-sm text-gray-500 mt-2">Exceeding this limit by calling a function too many times results in a dreaded **Stack Overflow** error.</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-center mb-4">How `factorial(3)` Unwinds</h3>
+                    <div class="space-y-2">
+                        <div class="bg-blue-100 p-3 rounded-lg shadow-sm text-center">
+                            <span class="font-bold text-blue-800">Call:</span> factorial(3)
+                        </div>
+                        <div class="ml-4 bg-blue-100 p-3 rounded-lg shadow-sm text-center">
+                            <span class="font-bold text-blue-800">Call:</span> factorial(2)
+                        </div>
+                        <div class="ml-8 bg-blue-100 p-3 rounded-lg shadow-sm text-center">
+                            <span class="font-bold text-blue-800">Call:</span> factorial(1)
+                        </div>
+                         <div class="ml-12 bg-green-100 p-3 rounded-lg shadow-sm text-center">
+                            <span class="font-bold text-green-800">Base Case:</span> factorial(0) returns 1
+                        </div>
+                        <div class="ml-8 bg-purple-100 p-3 rounded-lg shadow-sm text-center">
+                            <span class="font-bold text-purple-800">Return:</span> 1 * 1 = 1
+                        </div>
+                        <div class="ml-4 bg-purple-100 p-3 rounded-lg shadow-sm text-center">
+                             <span class="font-bold text-purple-800">Return:</span> 2 * 1 = 2
+                        </div>
+                        <div class="bg-purple-100 p-3 rounded-lg shadow-sm text-center">
+                             <span class="font-bold text-purple-800">Return:</span> 3 * 2 = 6
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="algorithms" class="card">
+            <h2 class="text-2xl font-bold text-center mb-6 text-[#665191]">Algorithms in Action</h2>
+            <p class="text-center text-gray-600 mb-8">Recursion shines in "Divide and Conquer" algorithms, but a naive approach can be disastrously inefficient, as seen with the classic Fibonacci problem.</p>
+            <div class="grid md:grid-cols-2 gap-12">
+                <div>
+                    <h3 class="font-semibold text-center mb-4">The Fibonacci Trap: Exponential Growth</h3>
+                    <p class="text-sm text-center text-gray-600 mb-4">Calculating Fibonacci recursively without storing results leads to an explosion of repeated calculations. This chart compares the number of operations for a naive recursive vs. an efficient iterative approach.</p>
+                    <div class="chart-container">
+                        <canvas id="fibonacciChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-center mb-4">Merge Sort: A Balanced Approach</h3>
+                     <p class="text-sm text-center text-gray-600 mb-4">Merge Sort elegantly splits an array, recursively sorts the halves, and then merges them. The "Combine" step, where sorted halves are merged, does the heavy lifting.</p>
+                    <div class="chart-container">
+                        <canvas id="mergeSortChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="flowchart" class="card">
+             <h2 class="text-2xl font-bold text-center mb-6 text-[#a05195]">The Merge Sort Process Flow</h2>
+             <p class="text-center text-gray-600 mb-8">This demonstrates the "Divide, Conquer, Combine" strategy that is the hallmark of many powerful recursive algorithms.</p>
+             <div class="flex flex-col items-center space-y-4">
+                 <div class="bg-gray-100 p-4 rounded-lg text-center w-full md:w-3/4">
+                     <h3 class="font-bold">1. DIVIDE</h3>
+                     <p>Split the array into two halves.</p>
+                     <div class="font-mono mt-2 bg-white p-2 rounded">[8, 3, 1, 7, 0, 10, 2]</div>
+                 </div>
+                 <div class="text-3xl font-bold text-[#ff7c43]">↓</div>
+                 <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div class="bg-gray-100 p-4 rounded-lg text-center">
+                         <div class="font-mono bg-white p-2 rounded">[8, 3, 1, 7]</div>
+                     </div>
+                     <div class="bg-gray-100 p-4 rounded-lg text-center">
+                         <div class="font-mono bg-white p-2 rounded">[0, 10, 2]</div>
+                     </div>
+                 </div>
+                 <div class="text-3xl font-bold text-[#ff7c43]">↓</div>
+                 <div class="bg-blue-100 p-4 rounded-lg text-center w-full md:w-3/4">
+                     <h3 class="font-bold text-blue-800">2. CONQUER (Recursive Calls)</h3>
+                     <p>Keep dividing until arrays have only one element (the base case).</p>
+                 </div>
+                 <div class="text-3xl font-bold text-[#ff7c43]">↓</div>
+                 <div class="bg-green-100 p-4 rounded-lg text-center w-full md:w-3/4">
+                     <h3 class="font-bold text-green-800">3. COMBINE (Merge)</h3>
+                     <p>Merge the sorted subarrays back together.</p>
+                     <div class="font-mono mt-2 bg-white p-2 rounded">[0, 1, 2, 3, 7, 8, 10]</div>
+                 </div>
+             </div>
+        </section>
+
+
+        <section id="comparison" class="card">
+            <h2 class="text-2xl font-bold text-center mb-6 text-[#d45087]">Recursion vs. Iteration: The Showdown</h2>
+            <p class="text-center text-gray-600 mb-8">Choosing between recursion and a standard loop (iteration) involves a trade-off between code elegance and performance.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="swot-item bg-green-100">
+                    <h3 class="text-xl font-bold text-green-800 mb-2">Strengths (Why use it?)</h3>
+                    <ul class="list-disc list-inside text-green-900 space-y-1">
+                        <li><strong>Elegance & Readability:</strong> Code often mirrors the problem definition.</li>
+                        <li><strong>Natural Fit:</strong> Perfect for recursive data structures like trees.</li>
+                        <li><strong>Less Code:</strong> Can reduce lines of code for complex logic.</li>
+                    </ul>
+                </div>
+                <div class="swot-item bg-red-100">
+                    <h3 class="text-xl font-bold text-red-800 mb-2">Weaknesses (The Dangers)</h3>
+                    <ul class="list-disc list-inside text-red-900 space-y-1">
+                        <li><strong>Stack Overflow Risk:</strong> Deep recursion can crash the program.</li>
+                        <li><strong>Performance Overhead:</strong> Function calls are slower than loops.</li>
+                        <li><strong>High Memory Use:</strong> Each call adds to the memory stack.</li>
+                    </ul>
+                </div>
+                <div class="swot-item bg-blue-100">
+                    <h3 class="text-xl font-bold text-blue-800 mb-2">Opportunities (Clever Tricks)</h3>
+                    <ul class="list-disc list-inside text-blue-900 space-y-1">
+                        <li><strong>Memoization:</strong> Caching results to avoid re-computation.</li>
+                        <li><strong>Tail Call Optimization:</strong> Compilers can convert some recursion to efficient loops.</li>
+                    </ul>
+                </div>
+                 <div class="swot-item bg-yellow-100">
+                    <h3 class="text-xl font-bold text-yellow-800 mb-2">Threats (Things to Watch)</h3>
+                    <ul class="list-disc list-inside text-yellow-900 space-y-1">
+                        <li><strong>Complex Debugging:</strong> Tracing through the call stack can be difficult.</li>
+                        <li><strong>Subtle Bugs:</strong> Incorrect base cases lead to infinite loops.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="traversal" class="card">
+            <h2 class="text-2xl font-bold text-center mb-6 text-[#f95d6a]">Use Case: Binary Tree Traversal</h2>
+            <p class="text-center text-gray-600 mb-8">Recursion makes traversing complex data structures like binary trees incredibly simple. The order you visit the node vs. its children defines the traversal. Click below to see the "Inorder" (Left-Root-Right) traversal animated.</p>
+            <div class="relative w-full h-72 mb-4" id="treeContainer"></div>
+            <div class="text-center mb-4">
+                <button id="traverseBtn" class="bg-[#ff7c43] text-white font-bold py-2 px-6 rounded-full hover:bg-[#d45087] transition-colors">Animate Inorder Traversal</button>
+            </div>
+            <p id="traversalOutput" class="text-center font-mono text-lg bg-gray-100 p-3 rounded-lg"></p>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tooltipTitleCallback = (tooltipItems) => {
+                const item = tooltipItems[0];
+                let label = item.chart.data.labels[item.dataIndex];
+                if (Array.isArray(label)) {
+                    return label.join(' ');
+                }
+                return label;
+            };
+
+            const sharedChartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: tooltipTitleCallback
+                        }
+                    }
+                },
+            };
+
+            const fibonacciData = {
+                labels: Array.from({ length: 15 }, (_, i) => i),
+                datasets: [
+                    {
+                        label: 'Naive Recursive Operations',
+                        data: [1, 1, 3, 5, 9, 15, 25, 41, 67, 109, 177, 287, 465, 753, 1219],
+                        borderColor: '#d45087',
+                        backgroundColor: 'rgba(212, 80, 135, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Iterative Operations',
+                        data: Array.from({ length: 15 }, (_, i) => i + 1),
+                        borderColor: '#003f5c',
+                        backgroundColor: 'rgba(0, 63, 92, 0.2)',
+                        fill: true,
+                        tension: 0.1
+                    }
+                ]
+            };
+            new Chart(document.getElementById('fibonacciChart'), {
+                type: 'line',
+                data: fibonacciData,
+                options: { ...sharedChartOptions, scales: { y: { type: 'logarithmic', title: { display: true, text: 'Number of Operations (Log Scale)' } } } }
+            });
+
+            const mergeSortData = {
+                labels: ['1. Divide (Split Array)', '2. Conquer (Recursive Sort)', '3. Combine (Merge Sorted Halves)'],
+                datasets: [{
+                    label: 'Effort Distribution',
+                    data: [15, 35, 50],
+                    backgroundColor: ['#665191', '#ff7c43', '#ffa600'],
+                    hoverOffset: 4
+                }]
+            };
+            new Chart(document.getElementById('mergeSortChart'), {
+                type: 'doughnut',
+                data: mergeSortData,
+                options: { ...sharedChartOptions }
+            });
+
+            const treeContainer = document.getElementById('treeContainer');
+            const traverseBtn = document.getElementById('traverseBtn');
+            const traversalOutput = document.getElementById('traversalOutput');
+            const treeData = {
+                val: 54, x: 50, y: 10,
+                children: [
+                    { val: 26, x: 25, y: 35, children: [
+                        { val: 17, x: 12.5, y: 60, children: [] },
+                        { val: 31, x: 37.5, y: 60, children: [] }
+                    ]},
+                    { val: 77, x: 75, y: 35, children: [
+                         { val: 65, x: 62.5, y: 60, children: [] },
+                         { val: 93, x: 87.5, y: 60, children: [] }
+                    ]}
+                ]
+            };
+            let nodeElements = {};
+
+            function drawTree(node, parent) {
+                const nodeEl = document.createElement('div');
+                nodeEl.className = 'absolute flex items-center justify-center w-12 h-12 rounded-full bg-[#2f4b7c] text-white font-bold text-lg transition-all duration-500';
+                nodeEl.textContent = node.val;
+                nodeEl.style.left = `${node.x}%`;
+                nodeEl.style.top = `${node.y}%`;
+                nodeEl.style.transform = 'translate(-50%, -50%)';
+                treeContainer.appendChild(nodeEl);
+                nodeElements[node.val] = nodeEl;
+                
+                if (parent) {
+                    const line = document.createElement('div');
+                    line.className = 'absolute bg-gray-300 h-0.5';
+                    const angle = Math.atan2(node.y - parent.y, node.x - parent.x) * 180 / Math.PI;
+                    const length = Math.hypot((node.x - parent.x) * treeContainer.offsetWidth / 100, (node.y - parent.y) * treeContainer.offsetHeight / 100);
+                    line.style.width = `${length}px`;
+                    line.style.left = `${parent.x}%`;
+                    line.style.top = `${parent.y}%`;
+                    line.style.transformOrigin = 'left center';
+                    line.style.transform = `translate(0, -50%) rotate(${angle}deg)`;
+                    line.style.zIndex = -1;
+                    treeContainer.appendChild(line);
+                }
+                
+                node.children.forEach(child => drawTree(child, node));
+            }
+
+            function getInorder(node, order = []) {
+                if (!node) return order;
+                if(node.children[0]) getInorder(node.children[0], order);
+                order.push(node.val);
+                if(node.children[1]) getInorder(node.children[1], order);
+                return order;
+            }
+
+            async function animateTraversal() {
+                traverseBtn.disabled = true;
+                traverseBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                traversalOutput.textContent = 'Traversal Order: ';
+                Object.values(nodeElements).forEach(el => el.classList.remove('bg-[#f95d6a]', 'scale-110'));
+
+                const inorderSequence = getInorder(treeData);
+                for(const val of inorderSequence) {
+                    nodeElements[val].classList.add('bg-[#f95d6a]', 'scale-110');
+                    traversalOutput.textContent += ` ${val}`;
+                    await new Promise(r => setTimeout(r, 600));
+                    nodeElements[val].classList.remove('scale-110');
+                }
+
+                traverseBtn.disabled = false;
+                traverseBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            
+            drawTree(treeData, null);
+            traverseBtn.addEventListener('click', animateTraversal);
+        });
+    </script>
+</body>
+</html>

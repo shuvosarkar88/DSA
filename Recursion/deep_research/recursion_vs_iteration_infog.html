@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infographic: Recursion vs. Iteration in C</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Brilliant Blues -->
+    <!-- Application Structure Plan: The infographic follows a narrative structure to guide the user from foundational knowledge to practical application. 1. **Introduction:** A bold headline to grab attention. 2. **Meet the Contenders:** A three-column layout comparing Regular Recursion, Tail Recursion, and Iteration on key metrics (Stack, Speed) using large text and icons. 3. **The Performance Showdown:** A central bar chart visualizing the stack and speed differences, making the impact of TCO clear. 4. **TCO Explained:** A simplified HTML/CSS flowchart to demystify stack frame reuse. 5. **The C Compiler Reality:** An HTML table summarizing GCC/Clang support for TCO, highlighting its non-guaranteed nature. 6. **TCO Roadblocks:** A grid layout visually explaining what factors prevent optimization. 7. **The Final Verdict:** Actionable recommendations on when to use each approach. This structure tells a compelling story with data, rather than just listing facts. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Core definitions & characteristics -> Goal: Inform/Compare -> Viz: "Single Big Number" stats & icons in cards -> Justification: Quick, high-impact comparison of core traits. Method: HTML/CSS. (No SVG)
+        - Report Info: Performance/Stack comparison -> Goal: Compare -> Viz: Bar Chart -> Justification: Best way to visually compare multiple categories (the three approaches) across two metrics (stack vs. speed). Method: Chart.js/Canvas. (No SVG)
+        - Report Info: TCO mechanism -> Goal: Organize/Inform -> Viz: HTML/CSS Flow Chart -> Justification: Visually explains a process (stack reuse) more effectively than text alone. Method: HTML/CSS with Flexbox. (No SVG/Mermaid)
+        - Report Info: Compiler support for TCO -> Goal: Organize -> Viz: HTML Table -> Justification: Ideal for presenting structured, tabular data clearly. Method: HTML/CSS. (No SVG)
+        - Report Info: TCO Inhibitors -> Goal: Organize -> Viz: Grid of Cards -> Justification: Breaks down a list of technical items into easy-to-read, visually separated blocks. Method: HTML/CSS. (No SVG)
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f9ff; }
+        .chart-container { position: relative; width: 100%; max-width: 800px; margin-left: auto; margin-right: auto; height: 400px; max-height: 50vh; }
+        .gradient-text { background: linear-gradient(to right, #2563eb, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto px-4 py-12 md:px-8">
+
+        <header class="text-center mb-16">
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-4 gradient-text">Recursion vs. Iteration</h1>
+            <p class="text-xl md:text-2xl font-semibold text-slate-600">A Performance Deep Dive in C</p>
+        </header>
+
+        <section id="contenders" class="mb-20">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-2">Meet the Contenders</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">Three approaches enter the ring, each with unique strengths and weaknesses. Understanding their impact on memory and speed is key to writing efficient C code.</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
+                    <h3 class="text-2xl font-bold text-blue-800 mb-4">Regular Recursion</h3>
+                    <p class="text-8xl mb-2">📈</p>
+                    <p class="text-lg font-semibold">Stack Growth: <span class="text-red-600 font-bold">O(N)</span></p>
+                    <p class="text-slate-600 text-sm mt-2">Each call adds a new layer to the stack, risking overflow in deep calculations.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
+                    <h3 class="text-2xl font-bold text-blue-800 mb-4">Tail Recursion (with TCO)</h3>
+                    <p class="text-8xl mb-2">✅</p>
+                    <p class="text-lg font-semibold">Stack Growth: <span class="text-green-600 font-bold">O(1)</span></p>
+                    <p class="text-slate-600 text-sm mt-2">With compiler optimization, the stack is reused, behaving like a memory-safe loop.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 text-center">
+                    <h3 class="text-2xl font-bold text-blue-800 mb-4">Iteration</h3>
+                    <p class="text-8xl mb-2">⚡️</p>
+                    <p class="text-lg font-semibold">Stack Growth: <span class="text-green-600 font-bold">O(1)</span></p>
+                    <p class="text-slate-600 text-sm mt-2">The champion of stack safety and predictable performance, using constant memory.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="performance" class="mb-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-2">The Performance Showdown</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">This chart compares the relative performance characteristics. Notice how Tail Recursion's profile changes dramatically when Tail Call Optimization (TCO) is applied by the compiler.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <section id="tco-explainer" class="mb-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-2">What is Tail Call Optimization (TCO)?</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">It's a compiler's magic trick. Instead of creating new stack frames for tail calls, it reuses the existing one, effectively turning recursion into a high-speed, memory-efficient loop.</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border-2 border-red-300">
+                    <h3 class="font-bold text-xl mb-4 text-red-700">Without TCO: The Stack Piles Up</h3>
+                    <div class="space-y-2 text-center font-mono text-sm">
+                        <div class="bg-red-100 p-2 rounded-md">Call 3: Pushes Frame 3</div>
+                        <div class="bg-red-100 p-2 rounded-md">Call 2: Pushes Frame 2</div>
+                        <div class="bg-red-100 p-2 rounded-md">Call 1: Pushes Frame 1</div>
+                        <p class="text-red-600 pt-2 font-sans">⬇️ Stack grows with each call ⬇️</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-lg border-2 border-green-400">
+                    <h3 class="font-bold text-xl mb-4 text-green-700">With TCO: The Stack is Reused</h3>
+                    <div class="space-y-2 text-center font-mono text-sm">
+                         <div class="relative bg-green-100 p-2 rounded-md h-28 flex items-center justify-center">
+                            <span class="z-10">Frame 1 is Reused</span>
+                            <span class="absolute text-3xl opacity-20">🔄</span>
+                         </div>
+                         <p class="text-green-600 pt-2 font-sans">Constant stack space, no overflow risk!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="c-reality" class="mb-20">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-2">The Reality of TCO in C</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">Unlike some languages, the C standard does <span class="font-bold text-red-600">not guarantee</span> TCO. Support depends on your compiler and optimization settings, making it risky to rely on for mission-critical safety.</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-slate-200 overflow-x-auto">
+                 <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-4 bg-blue-100 text-blue-800 font-semibold rounded-tl-lg">Feature</th>
+                            <th class="p-4 bg-blue-100 text-blue-800 font-semibold">GCC & Clang Support</th>
+                            <th class="p-4 bg-blue-100 text-blue-800 font-semibold rounded-tr-lg">Key Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b border-slate-200">
+                            <td class="p-4 font-medium">Basic TCO</td>
+                            <td class="p-4 text-green-700 font-semibold">Yes</td>
+                            <td class="p-4">Enabled with `-O2`, `-O3`, `-Os` flags.</td>
+                        </tr>
+                        <tr class="border-b border-slate-200">
+                            <td class="p-4 font-medium">Sibling Calls</td>
+                            <td class="p-4 text-green-700 font-semibold">Yes</td>
+                            <td class="p-4">Requires compatible function signatures (args, return type).</td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 font-medium">`musttail` Attribute</td>
+                            <td class="p-4 text-yellow-600 font-semibold">Yes (Recent Versions)</td>
+                            <td class="p-4">Forces TCO or errors out. Alters local variable lifetime rules.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="inhibitors" class="mb-20">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-2">TCO Roadblocks</h2>
+                <p class="max-w-3xl mx-auto text-slate-600">Even with the right compiler flags, these common C patterns can prevent TCO from being applied.</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <p class="text-3xl mb-3">셈</p>
+                    <h4 class="font-bold text-lg mb-1">Not The Last Operation</h4>
+                    <p class="text-sm text-slate-600">Code like `return func() + 1;` is not a tail call. The addition happens *after* the call returns.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <p class="text-3xl mb-3">📍</p>
+                    <h4 class="font-bold text-lg mb-1">Escaping Pointers</h4>
+                    <p class="text-sm text-slate-600">Passing the address of a local variable (`&x`) to the callee prevents the caller's stack frame from being discarded.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <p class="text-3xl mb-3">📦</p>
+                    <h4 class="font-bold text-lg mb-1">Returning Large Structs</h4>
+                    <p class="text-sm text-slate-600">The hidden memory-copying mechanics can add operations after the recursive call, breaking TCO.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <p class="text-3xl mb-3">💥</p>
+                    <h4 class="font-bold text-lg mb-1">Volatile Variables</h4>
+                    <p class="text-sm text-slate-600">The strict memory access rules for `volatile` can conflict with the transformations required for TCO.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <p class="text-3xl mb-3">🔀</p>
+                    <h4 class="font-bold text-lg mb-1">setjmp / longjmp</h4>
+                    <p class="text-sm text-slate-600">These non-local gotos rely on a stable stack state that TCO would disrupt, so they are incompatible.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <p class="text-3xl mb-3">📜</p>
+                    <h4 class="font-bold text-lg mb-1">Calling Conventions</h4>
+                    <p class="text-sm text-slate-600">Complex or mismatched function signatures can make safe stack frame reuse impossible for the compiler.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="verdict" class="bg-blue-800 text-white p-8 rounded-2xl">
+            <h2 class="text-3xl font-bold text-center mb-6">The Verdict: Choosing Your Champion in C</h2>
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div>
+                    <h3 class="text-2xl font-bold mb-2 text-sky-300">Iteration</h3>
+                    <p class="text-blue-200">Your default choice. Guarantees stack safety and predictable, high performance. Always reliable, always portable.</p>
+                </div>
+                 <div>
+                    <h3 class="text-2xl font-bold mb-2 text-sky-300">Regular Recursion</h3>
+                    <p class="text-blue-200">Use for clarity on problems with a shallow, known recursion depth where stack overflow is not a risk.</p>
+                </div>
+                 <div>
+                    <h3 class="text-2xl font-bold mb-2 text-sky-300">Tail Recursion</h3>
+                    <p class="text-blue-200">Use for deep recursion ONLY if you can verify TCO is active (check assembly) or enforce it with `musttail`.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+<script>
+const wrapLabel = (label) => {
+    const maxLen = 16;
+    if (label.length <= maxLen) {
+        return label;
+    }
+    const words = label.split(' ');
+    let lines = [];
+    let currentLine = '';
+    for (const word of words) {
+        if ((currentLine + ' ' + word).length > maxLen) {
+            lines.push(currentLine);
+            currentLine = word;
+        } else {
+            currentLine = currentLine ? currentLine + ' ' + word : word;
+        }
+    }
+    if (currentLine) {
+        lines.push(currentLine);
+    }
+    return lines;
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    const performanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: [
+                wrapLabel('Regular Recursion'), 
+                wrapLabel('Tail Recursion (No TCO)'), 
+                wrapLabel('Tail Recursion (With TCO)'), 
+                wrapLabel('Iteration')
+            ],
+            datasets: [{
+                label: 'Stack Usage (Higher is Worse)',
+                data: [85, 85, 10, 10],
+                backgroundColor: 'rgba(239, 68, 68, 0.6)',
+                borderColor: 'rgba(239, 68, 68, 1)',
+                borderWidth: 1,
+                borderRadius: 5
+            }, {
+                label: 'Relative Speed (Higher is Better)',
+                data: [40, 45, 95, 100],
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1,
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: 'Relative Stack Usage vs. Speed', font: { size: 16 }, color: '#334155', padding: { bottom: 20 } },
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        title: function(tooltipItems) {
+                            const item = tooltipItems[0];
+                            let label = item.chart.data.labels[item.dataIndex];
+                            if (Array.isArray(label)) {
+                              return label.join(' ');
+                            } else {
+                              return label;
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#e2e8f0' },
+                    ticks: { color: '#475569' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#475569' }
+                }
+            }
+        }
+    });
+});
+</script>
+</body>
+</html>
