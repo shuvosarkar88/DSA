@@ -1,8 +1,6 @@
 /* mathematically
     fact(0) = 1
 */ 
-
-
 #include <stdio.h>
 
 int fact(int n) {
